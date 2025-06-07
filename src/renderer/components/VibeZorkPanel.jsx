@@ -2,6 +2,14 @@ import React from 'react';
 
 const VibeZorkPanel = ({ gameOutput, currentImage, isGeneratingImage, onCommand, disabled }) => {
   const [command, setCommand] = React.useState('');
+  const outputContentRef = React.useRef(null);
+
+  // Auto-scroll to bottom when new content is added
+  React.useEffect(() => {
+    if (outputContentRef.current) {
+      outputContentRef.current.scrollTop = outputContentRef.current.scrollHeight;
+    }
+  }, [gameOutput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -40,7 +48,7 @@ const VibeZorkPanel = ({ gameOutput, currentImage, isGeneratingImage, onCommand,
 
       {/* Game Output Section - Most of the space */}
       <div className="output-section">
-        <div className="output-content">
+        <div className="output-content" ref={outputContentRef}>
           {gameOutput.map((line, index) => (
             <div key={index} className={`output-line ${line.startsWith('>') ? 'command' : 'response'}`}>
               {line}

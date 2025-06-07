@@ -96,8 +96,10 @@
   grid-template-areas:
     "vibezork sidebar";
   height: calc(100vh - 35px);
+  max-height: calc(100vh - 35px); /* Enforce height constraint */
   gap: 10px;
   padding: 10px;
+  overflow: hidden; /* Prevent grid items from expanding beyond container */
 }
 
 /* Panel Header - Shared style for both VibeZork and AI panels */
@@ -115,10 +117,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 50px;
-  height: 50px;
+  height: 50px; /* Fixed height */
   box-sizing: border-box;
   box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+/* VibeZork Panel Header - Grid positioned */
+.vibezork-panel .panel-header {
+  grid-area: header;
 }
 
 .panel-header h3 {
@@ -136,25 +142,32 @@
   grid-area: vibezork;
   background-color: #0d0d0d;
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 50px 200px minmax(0, 1fr) 80px; /* minmax prevents row expansion */
+  grid-template-areas:
+    "header"
+    "graphics"
+    "output"
+    "input";
   overflow: hidden;
   border: 2px solid #00ff00;
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.2), inset 0 0 30px rgba(0, 255, 0, 0.05);
+  height: 100%;
+  max-height: 100%; /* Enforce height constraint */
+  min-height: 0; /* Allow grid to shrink if needed */
 }
 
 .graphics-section {
-  height: 30%; /* Fixed 30% height for graphics */
+  grid-area: graphics;
   background-color: #000000;
   background-image: 
     radial-gradient(circle at 50% 50%, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid #00ff00;
-  flex-shrink: 0; /* Prevent shrinking */
+  overflow: hidden;
 }
 
 .placeholder-image {
@@ -213,18 +226,22 @@
 }
 
 .output-section {
-  flex: 1; /* Takes most of the remaining space */
+  grid-area: output;
   background-color: #000000;
   background-image: 
     linear-gradient(0deg, rgba(0, 255, 0, 0.02) 50%, transparent 50%);
   background-size: 100% 2px;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* Allow flexbox to shrink */
+  overflow: hidden;
+  min-height: 0;
+  max-height: 100%; /* Cannot grow beyond grid cell */
+  height: 100%; /* Take full grid cell height */
 }
 
 .output-content {
-  flex: 1;
+  height: 100%; /* Explicit height constraint */
+  max-height: 100%; /* Enforce constraint */
   padding: 15px;
   overflow-y: auto;
   font-family: 'Courier New', monospace;
@@ -232,11 +249,35 @@
   line-height: 1.6;
   scrollbar-width: thin;
   scrollbar-color: #00ff00 #000000;
+  box-sizing: border-box; /* Include padding in height calculation */
+}
+
+/* Webkit scrollbar styling */
+.output-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.output-content::-webkit-scrollbar-track {
+  background-color: #000000;
+  border-radius: 4px;
+}
+
+.output-content::-webkit-scrollbar-thumb {
+  background-color: #00ff00;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.output-content::-webkit-scrollbar-thumb:hover {
+  background-color: #00cc00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
 }
 
 .output-line {
   margin-bottom: 5px;
   padding: 2px 0;
+  word-wrap: break-word; /* Prevent long words from expanding container */
+  overflow-wrap: break-word; /* Modern browsers */
 }
 
 .output-line.command {
@@ -264,10 +305,10 @@
 
 /* Input Section within VibeZork Panel */
 .vibezork-panel .input-section {
+  grid-area: input;
   background-color: #000000;
   border-top: 1px solid #00ff00;
   padding: 15px;
-  min-height: 80px;
   background-image: 
     repeating-linear-gradient(
       45deg,
@@ -276,6 +317,7 @@
       rgba(0, 255, 0, 0.02) 10px,
       rgba(0, 255, 0, 0.02) 20px
     );
+  overflow: hidden;
 }
 
 .vibezork-panel .input-form {
@@ -422,22 +464,38 @@
 /* Sidebar Container */
 .sidebar {
   grid-area: sidebar;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "ai"
+    "controls";
   gap: 10px;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 /* AI Panel */
 .ai-panel {
-  flex: 1;
+  grid-area: ai;
   background-color: #0d0d0d;
   border-radius: 8px;
   border: 2px solid #00ff00;
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* Allow flexbox to shrink */
+  display: grid;
+  grid-template-rows: 50px minmax(0, 1fr);
+  grid-template-areas:
+    "header"
+    "content";
   overflow: hidden;
+  min-height: 0;
+  max-height: 100%;
+  height: 100%;
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.2), inset 0 0 30px rgba(0, 255, 0, 0.05);
+}
+
+/* AI Panel Header - Grid positioned */
+.ai-panel .panel-header {
+  grid-area: header;
 }
 
 /* AI Panel specific styles for status in header */
@@ -460,19 +518,21 @@
 
 
 .ai-content {
-  flex: 1;
+  grid-area: content;
   overflow-y: auto;
   padding: 15px;
   background-color: #000000;
   background-image: 
     linear-gradient(0deg, rgba(0, 255, 0, 0.02) 50%, transparent 50%);
   background-size: 100% 2px;
+  box-sizing: border-box;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
 }
 
 .ai-thoughts {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: block; /* Change from flex to block to prevent expansion */
 }
 
 .thought-item {
@@ -480,6 +540,7 @@
   padding: 10px;
   border-radius: 6px;
   border-left: 3px solid #00ff00;
+  margin-bottom: 10px; /* Replace gap with margin */
   border: 1px solid rgba(0, 255, 0, 0.3);
   box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
 }
@@ -526,6 +587,7 @@
 
 /* Controls Panel */
 .controls-panel {
+  grid-area: controls;
   background-color: #0d0d0d;
   border-radius: 8px;
   border: 2px solid #00ff00;
@@ -533,7 +595,6 @@
   display: flex;
   flex-direction: column;
   gap: 15px;
-  min-height: auto;
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.2), inset 0 0 30px rgba(0, 255, 0, 0.05);
 }
 
