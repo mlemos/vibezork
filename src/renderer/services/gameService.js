@@ -200,6 +200,18 @@ class GameService {
     }
   }
 
+  // Request AI move via WebSocket
+  requestAIMove() {
+    if (!this.isConnected || !this.socket) {
+      console.error('Not connected to game server');
+      return Promise.reject(new Error('Not connected to game server'));
+    }
+
+    console.log('Requesting AI move via WebSocket');
+    this.socket.emit('ai-move');
+    return Promise.resolve(); // WebSocket is fire-and-forget, response comes via event
+  }
+
   // Event listeners
   onGameOutput(callback) {
     this.callbacks.onGameOutput = callback;

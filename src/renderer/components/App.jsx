@@ -136,6 +136,27 @@ const App = () => {
     }
   };
 
+  const handleAIMove = async () => {
+    console.log('AI Move requested');
+    setAiThoughts(prev => [...prev, 'AI thinking...']);
+    setIsGeneratingImage(true); // Start loading state for image
+    
+    try {
+      if (isConnected) {
+        // Request AI move via WebSocket
+        await gameService.requestAIMove();
+      } else {
+        // Fallback to local test mode
+        setGameOutput(prev => [...prev, 'AI Move requested (no server connection)']);
+        setIsGeneratingImage(false);
+      }
+    } catch (error) {
+      console.error('Error requesting AI move:', error);
+      setGameOutput(prev => [...prev, `❌ Error requesting AI move: ${error.message}`]);
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleReset = async () => {
     setAiThoughts(prev => [...prev, 'Resetting game...']);
     setIsGeneratingImage(true); // Start loading state for image
@@ -210,6 +231,7 @@ const App = () => {
             onAIToggle={handleAIToggle}
             onMuteToggle={handleMuteToggle}
             onGraphicsModeChange={handleGraphicsModeChange}
+            onAIMove={handleAIMove}
             isAIPlaying={isAIPlaying}
             isMuted={isMuted}
             graphicsMode={graphicsMode}

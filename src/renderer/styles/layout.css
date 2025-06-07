@@ -417,6 +417,37 @@
   box-shadow: none;
 }
 
+.vibezork-panel .ai-move-button {
+  padding: 12px 20px;
+  background-color: #000000;
+  border: 2px solid #ff6600;
+  color: #ff6600;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  min-width: 80px;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
+  margin-left: 10px;
+}
+
+.vibezork-panel .ai-move-button:hover:not(:disabled) {
+  background-color: #ff6600;
+  color: #000000;
+  box-shadow: 0 0 20px rgba(255, 102, 0, 0.6);
+  text-shadow: none;
+}
+
+.vibezork-panel .ai-move-button:disabled {
+  background-color: #333;
+  border-color: #666;
+  color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* Input Panel */
 .input-panel {
   grid-area: input;
@@ -634,6 +665,11 @@
 .controls-group {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.ai-controls-row {
+  display: flex;
   gap: 10px;
 }
 

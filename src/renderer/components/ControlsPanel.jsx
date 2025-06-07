@@ -5,6 +5,7 @@ const ControlsPanel = ({
   onAIToggle, 
   onMuteToggle, 
   onGraphicsModeChange,
+  onAIMove,
   isAIPlaying,
   isMuted,
   graphicsMode 
@@ -20,13 +21,23 @@ const ControlsPanel = ({
           🔄 Reset Game
         </button>
         
-        <button 
-          onClick={onAIToggle}
-          className={`control-button ai-button ${isAIPlaying ? 'active' : ''}`}
-          title={isAIPlaying ? 'Pause AI player' : 'Let AI play the game'}
-        >
-          {isAIPlaying ? '⏸️ Pause AI' : '▶️ Play AI'}
-        </button>
+        <div className="ai-controls-row">
+          <button 
+            onClick={onAIToggle}
+            className={`control-button ai-button ${isAIPlaying ? 'active' : ''}`}
+            title={isAIPlaying ? 'Pause AI player' : 'Let AI play the game'}
+          >
+            {isAIPlaying ? '⏸️ Pause AI' : '▶️ Play AI'}
+          </button>
+          
+          <button 
+            onClick={onAIMove}
+            className="control-button ai-move-button"
+            title="Let AI make the next move"
+          >
+            🤖 AI Move
+          </button>
+        </div>
         
         <button 
           onClick={onMuteToggle}

@@ -3,6 +3,7 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const ZorkGameEngine = require('./gameEngine');
+const AIPlayerService = require('./aiPlayerService');
 
 class VibeZorkServer {
   constructor() {
@@ -15,6 +16,7 @@ class VibeZorkServer {
       }
     });
     this.gameEngine = new ZorkGameEngine();
+    this.aiPlayer = new AIPlayerService();
     this.port = process.env.PORT || 3001;
     
     // Set up image generation callback
@@ -148,6 +150,43 @@ class VibeZorkServer {
           });
         } catch (error) {
           console.error('WebSocket command error:', error);
+          socket.emit('error', { message: error.message });
+        }
+      });
+
+      // Handle AI move requests
+      socket.on('ai-move', async () => {
+        try {
+          console.log(`AI move requested from ${socket.id}`);
+          
+          // Get current game state and history
+          const gameHistory = this.gameEngine.getHistory();
+          const currentState = this.gameEngine.getCurrentState();
+          
+          // Generate AI command
+          const aiCommand = await this.aiPlayer.generateNextCommand(gameHistory, currentState);
+          
+          if (!aiCommand) {
+            socket.emit('error', { message: 'AI player failed to generate command' });
+            return;
+          }
+          
+          console.log(`AI generated command: ${aiCommand}`);
+          
+          // Execute the AI command
+          const result = await this.gameEngine.sendCommand(aiCommand, 'fantasy');
+          
+          // Broadcast to all clients with AI indicator
+          this.io.emit('game-output', {
+            command: aiCommand,
+            output: result.output,
+            gameStatus: result.gameStatus,
+            timestamp: new Date().toISOString(),
+            fromAI: true,
+            fromClient: socket.id
+          });
+        } catch (error) {
+          console.error('WebSocket AI move error:', error);
           socket.emit('error', { message: error.message });
         }
       });
