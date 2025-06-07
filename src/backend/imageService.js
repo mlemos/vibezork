@@ -1,14 +1,14 @@
-const OpenAI = require('openai');
+const Replicate = require('replicate');
 
 class ImageGenerationService {
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+    this.replicate = new Replicate({
+      auth: process.env.REPLICATE_API_KEY
     });
-    this.isEnabled = !!process.env.OPENAI_API_KEY;
+    this.isEnabled = !!process.env.REPLICATE_API_KEY;
     
     if (!this.isEnabled) {
-      console.warn('OpenAI API key not found. Image generation disabled.');
+      console.warn('Replicate API token not found. Image generation disabled.');
     }
   }
 
@@ -45,11 +45,11 @@ class ImageGenerationService {
   }
 
   /**
-   * Generate image using OpenAI DALL-E
+   * Generate image using Replicate Flux model
    */
   async generateImage(gameOutput, gameStatus = null) {
     if (!this.isEnabled) {
-      console.log('Image generation disabled - no API key');
+      console.log('Image generation disabled - no API token');
       return null;
     }
 
@@ -67,20 +67,83 @@ class ImageGenerationService {
       const prompt = this.createImagePrompt(sceneDescription, gameStatus);
       console.log('Image prompt:', prompt);
 
-      const response = await this.openai.images.generate({
-        model: "dall-e-3",
+      const input = {
         prompt: prompt,
-        n: 1,
-        size: "1792x1024", // Maximum horizontal format: 1792x1024 (1.75:1 ratio)
-        quality: "standard",
-        style: "vivid"
-      });
+        aspect_ratio: "21:9", // Wide landscape format for immersive game views
+        output_format: "webp",
+        output_quality: 90,
+        num_inference_steps: 4 // Fast generation with Flux Schnell
+      };
 
-      const imageUrl = response.data[0].url;
-      const imageDetails = response.data[0];
+      console.log('Replicate input:', input);
+
+      const output = await this.replicate.run("black-forest-labs/flux-schnell", { input });
+      
+      
+      // Handle different output formats from Flux
+      let imageUrl;
+      let streamToProcess = null;
+      
+      if (Array.isArray(output) && output[0]) {
+        if (output[0].constructor && (output[0].constructor.name === 'ReadableStream' || output[0].constructor.name === 'FileOutput')) {
+          streamToProcess = output[0];
+        } else {
+          imageUrl = output[0];
+        }
+      } else if (output && output.constructor && output.constructor.name === 'ReadableStream') {
+        streamToProcess = output;
+      } else {
+        imageUrl = output;
+      }
+      
+      if (streamToProcess) {
+        try {
+          // Check if it's a FileOutput with a URL method
+          if (streamToProcess.url && typeof streamToProcess.url === 'function') {
+            const urlObject = await streamToProcess.url();
+            imageUrl = urlObject.href || urlObject.toString();
+          } else if (streamToProcess.toString && typeof streamToProcess.toString === 'function') {
+            const stringValue = streamToProcess.toString();
+            if (stringValue.startsWith('http')) {
+              imageUrl = stringValue;
+            }
+          } else if (streamToProcess.getReader) {
+            // It's a ReadableStream
+            const chunks = [];
+            const reader = streamToProcess.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            // Try to get the URL - Flux might be streaming the image data directly
+            const combinedData = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+            let offset = 0;
+            for (const chunk of chunks) {
+              combinedData.set(chunk, offset);
+              offset += chunk.length;
+            }
+            
+            // Check if it looks like a URL string
+            const dataAsString = new TextDecoder().decode(combinedData);
+            if (dataAsString.startsWith('http')) {
+              imageUrl = dataAsString.trim();
+            } else {
+              // It's binary image data - we need to save it or convert to base64
+              imageUrl = `data:image/webp;base64,${Buffer.from(combinedData).toString('base64')}`;
+            }
+          } else {
+            imageUrl = null;
+          }
+        } catch (streamError) {
+          console.error('Error processing stream:', streamError);
+          imageUrl = null;
+        }
+      } else {
+        imageUrl = output;
+      }
+      
       console.log('Image generated successfully:', imageUrl);
-      console.log('Image size requested: 1792x1024');
-      console.log('Full response:', JSON.stringify(imageDetails, null, 2));
       
       return {
         url: imageUrl,
@@ -91,14 +154,6 @@ class ImageGenerationService {
 
     } catch (error) {
       console.error('Error generating image:', error);
-      
-      // Handle specific API errors
-      if (error.code === 'insufficient_quota') {
-        console.error('OpenAI API quota exceeded');
-      } else if (error.code === 'invalid_api_key') {
-        console.error('Invalid OpenAI API key');
-      }
-      
       return null;
     }
   }
