@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const ImageGenerationService = require('./imageService');
 
 class ZorkGameEngine {
   constructor() {
@@ -14,6 +15,12 @@ class ZorkGameEngine {
     // Configuration
     this.dfrotzPath = '/opt/homebrew/bin/dfrotz';
     this.gameFilePath = path.join(process.env.HOME, 'Downloads/zorkpack/zork1_sg.z5');
+    
+    // Image generation service
+    this.imageService = new ImageGenerationService();
+    
+    // Callback for when images are generated
+    this.onImageGenerated = null;
   }
 
   async initialize() {
@@ -76,12 +83,19 @@ class ZorkGameEngine {
             // Clean and store the initial output
             const result = this.cleanOutput(initialOutput);
             this.currentState = result.output;
+            
             this.gameHistory.push({
               type: 'start',
               output: result.output,
               gameStatus: result.gameStatus,
               timestamp: new Date().toISOString()
             });
+            
+            // Generate initial image asynchronously and notify when ready
+            this.generateImageForOutput(result.output, result.gameStatus, { type: 'start' })
+              .catch(error => {
+                console.error('Error generating start image:', error);
+              });
             
             console.log('Game started successfully');
             console.log('Clean output:', result.output);
@@ -223,6 +237,12 @@ class ZorkGameEngine {
             timestamp: new Date().toISOString()
           });
 
+          // Generate image for command response asynchronously and notify when ready
+          this.generateImageForOutput(result.output, result.gameStatus, { type: 'command', command: command })
+            .catch(error => {
+              console.error('Error generating command image:', error);
+            });
+
           this.currentState = result.output;
           this.isProcessingCommand = false;
           this.processCommandQueue();
@@ -351,6 +371,98 @@ class ZorkGameEngine {
     this.isInitialized = false;
     
     console.log('Game engine cleanup complete');
+  }
+
+  /**
+   * Extract meaningful scene description from game output
+   */
+  extractSceneDescription(gameOutput) {
+    // Remove command echoes and status lines
+    let description = gameOutput
+      .replace(/^>.*$/gm, '') // Remove command lines
+      .replace(/.*Score:\s*\d+\s*Moves:\s*\d+.*$/gm, '') // Remove status lines
+      .replace(/^\s*$/gm, '') // Remove empty lines
+      .trim();
+
+    // Take first meaningful paragraph as scene description
+    const paragraphs = description.split('\n\n').filter(p => p.trim().length > 20);
+    return paragraphs[0] || description;
+  }
+
+  /**
+   * Create a detailed prompt for image generation
+   */
+  createImagePrompt(sceneDescription, gameStatus = null) {
+    // Base style for all Zork images
+    const baseStyle = "fantasy adventure game art, retro 1980s text adventure style, detailed illustration, atmospheric lighting, mysterious and adventurous mood";
+    
+    // Extract location from game status if available
+    const location = gameStatus?.room || "mysterious location";
+    
+    // Create enhanced prompt
+    const prompt = `${sceneDescription}. ${baseStyle}. Location: ${location}. High quality digital art, no text or UI elements.`;
+    
+    return prompt.substring(0, 1000); // DALL-E has prompt length limits
+  }
+
+  /**
+   * Generate image for game output
+   */
+  async generateImageForOutput(gameOutput, gameStatus = null, context = null) {
+    if (!this.imageService.isAvailable()) {
+      console.log('Image generation not available');
+      return null;
+    }
+
+    try {
+      // Extract scene description and create prompt immediately
+      const sceneDescription = this.extractSceneDescription(gameOutput);
+      const prompt = this.createImagePrompt(sceneDescription, gameStatus);
+      
+      console.log('Generated prompt:', prompt);
+      
+      // Notify about prompt immediately
+      if (this.onImageGenerated) {
+        this.onImageGenerated({
+          type: context?.type || 'unknown',
+          command: context?.command,
+          promptReady: true,
+          prompt: prompt,
+          sceneDescription: sceneDescription,
+          output: gameOutput,
+          gameStatus: gameStatus
+        });
+      }
+
+      const imageData = await this.imageService.generateImage(gameOutput, gameStatus);
+      if (imageData) {
+        console.log('Image generated for game output');
+        
+        // Notify about completed image
+        if (this.onImageGenerated) {
+          this.onImageGenerated({
+            type: context?.type || 'unknown',
+            command: context?.command,
+            imageData: imageData,
+            output: gameOutput,
+            gameStatus: gameStatus
+          });
+        }
+        
+        return imageData;
+      }
+    } catch (error) {
+      console.error('Error in generateImageForOutput:', error);
+    }
+    
+    return null;
+  }
+
+  /**
+   * Set callback for when images are generated
+   */
+  setImageGeneratedCallback(callback) {
+    this.onImageGenerated = callback;
   }
 }
 

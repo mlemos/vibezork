@@ -8,7 +8,8 @@ class GameService {
       onGameOutput: null,
       onGameReset: null,
       onConnectionChange: null,
-      onError: null
+      onError: null,
+      onImageGenerated: null
     };
     this.serverUrl = 'http://localhost:3001';
   }
@@ -73,6 +74,13 @@ class GameService {
       this.isConnected = false;
       if (this.callbacks.onConnectionChange) {
         this.callbacks.onConnectionChange(false);
+      }
+    });
+
+    this.socket.on('image-generated', (data) => {
+      console.log('Image generated received:', data);
+      if (this.callbacks.onImageGenerated) {
+        this.callbacks.onImageGenerated(data);
       }
     });
   }
@@ -203,6 +211,10 @@ class GameService {
 
   onError(callback) {
     this.callbacks.onError = callback;
+  }
+
+  onImageGenerated(callback) {
+    this.callbacks.onImageGenerated = callback;
   }
 
   getConnectionStatus() {

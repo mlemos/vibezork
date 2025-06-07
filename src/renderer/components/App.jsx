@@ -15,6 +15,8 @@ const App = () => {
   const [graphicsMode, setGraphicsMode] = useState('fantasy');
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [gameStatus, setGameStatus] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     // Set up game service callbacks
@@ -43,6 +45,8 @@ const App = () => {
       if (data.gameStatus) {
         setGameStatus(data.gameStatus);
       }
+
+      // Note: Images now come via separate image-generated event
       
       setAiThoughts(prev => [...prev, `Game response: ${data.output.substring(0, 50)}...`]);
     });
@@ -55,11 +59,34 @@ const App = () => {
       if (data.gameStatus) {
         setGameStatus(data.gameStatus);
       }
+
+      // Note: Images now come via separate image-generated event
     });
 
     gameService.onError((error) => {
       setGameOutput(prev => [...prev, `❌ Error: ${error.message}`]);
       setAiThoughts(prev => [...prev, `Error occurred: ${error.message}`]);
+    });
+
+    gameService.onImageGenerated((data) => {
+      console.log('Image generated received in App:', data);
+      
+      if (data.promptReady) {
+        // Show prompt immediately when generation starts
+        setAiThoughts(prev => [
+          ...prev,
+          `🎨 Generating ${data.type} scene image...`,
+          `Prompt: "${data.prompt}"`
+        ]);
+      } else if (data.imageData && data.imageData.url) {
+        // Show completion when image is ready
+        setCurrentImage(data.imageData.url);
+        setIsGeneratingImage(false);
+        setAiThoughts(prev => [
+          ...prev, 
+          `✅ ${data.type} scene image completed`
+        ]);
+      }
     });
 
     // Connect to game service
@@ -91,6 +118,7 @@ const App = () => {
   const handleCommand = async (command) => {
     console.log('Command entered:', command);
     setAiThoughts(prev => [...prev, `User command: ${command}`]);
+    setIsGeneratingImage(true); // Start loading state for image
     
     try {
       if (isConnected) {
@@ -99,25 +127,30 @@ const App = () => {
       } else {
         // Fallback to local test mode
         setGameOutput(prev => [...prev, `> ${command}`, 'Command received (Phase 1 test - no server connection)']);
+        setIsGeneratingImage(false);
       }
     } catch (error) {
       console.error('Error sending command:', error);
       setGameOutput(prev => [...prev, `❌ Error sending command: ${error.message}`]);
+      setIsGeneratingImage(false);
     }
   };
 
   const handleReset = async () => {
     setAiThoughts(prev => [...prev, 'Resetting game...']);
+    setIsGeneratingImage(true); // Start loading state for image
     
     try {
       if (isConnected) {
         await gameService.resetGame();
       } else {
         setGameOutput(['🔄 Game reset (Phase 1 test - no server connection)']);
+        setIsGeneratingImage(false);
       }
     } catch (error) {
       console.error('Error resetting game:', error);
       setGameOutput(prev => [...prev, `❌ Error resetting game: ${error.message}`]);
+      setIsGeneratingImage(false);
     }
   };
 
@@ -160,8 +193,8 @@ const App = () => {
           className="vibezork-panel" 
           gameOutput={gameOutput}
           gameStatus={gameStatus}
-          currentImage={null}
-          isGeneratingImage={false}
+          currentImage={currentImage}
+          isGeneratingImage={isGeneratingImage}
           onCommand={handleCommand}
           disabled={false}
         />

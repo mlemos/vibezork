@@ -17,6 +17,14 @@ class VibeZorkServer {
     this.gameEngine = new ZorkGameEngine();
     this.port = process.env.PORT || 3001;
     
+    // Set up image generation callback
+    this.gameEngine.setImageGeneratedCallback((data) => {
+      console.log('Image generated, broadcasting to clients:', data.type);
+      console.log('Image data includes prompt:', !!data.imageData?.prompt);
+      console.log('Prompt preview:', data.imageData?.prompt?.substring(0, 100) + '...');
+      this.io.emit('image-generated', data);
+    });
+    
     this.setupMiddleware();
     this.setupRoutes();
     this.setupWebSocket();
@@ -50,7 +58,12 @@ class VibeZorkServer {
     this.app.post('/api/game/start', async (req, res) => {
       try {
         const result = await this.gameEngine.startGame();
-        res.json({ success: true, message: 'Game started', output: result.output, gameStatus: result.gameStatus });
+        res.json({ 
+          success: true, 
+          message: 'Game started', 
+          output: result.output, 
+          gameStatus: result.gameStatus
+        });
       } catch (error) {
         console.error('Error starting game:', error);
         res.status(500).json({ success: false, error: error.message });
