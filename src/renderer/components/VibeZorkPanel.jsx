@@ -1,6 +1,6 @@
 import React from 'react';
 
-const VibeZorkPanel = ({ gameOutput, currentImage, isGeneratingImage, onCommand, disabled }) => {
+const VibeZorkPanel = ({ gameOutput, gameStatus, currentImage, isGeneratingImage, onCommand, disabled }) => {
   const [command, setCommand] = React.useState('');
   const outputContentRef = React.useRef(null);
 
@@ -45,6 +45,17 @@ const VibeZorkPanel = ({ gameOutput, currentImage, isGeneratingImage, onCommand,
           </div>
         )}
       </div>
+
+      {/* Game Status Section */}
+      {gameStatus && (
+        <div className="status-section">
+          <div className="status-content">
+            <span className="status-room">{gameStatus.room}</span>
+            <span className="status-score">Score: {gameStatus.score}</span>
+            <span className="status-moves">Moves: {gameStatus.moves}</span>
+          </div>
+        </div>
+      )}
 
       {/* Game Output Section - Most of the space */}
       <div className="output-section">

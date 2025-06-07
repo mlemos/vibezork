@@ -41,9 +41,8 @@ class ZorkGameEngine {
     }
 
     if (this.dfrotzProcess) {
-      console.log('Game already running, resetting...');
-      await this.resetGame();
-      return this.currentState;
+      console.log('Game already running, killing existing process...');
+      await this.killProcess();
     }
 
     console.log('Starting dfrotz process...');
@@ -75,17 +74,18 @@ class ZorkGameEngine {
             this.dfrotzProcess.stdout.removeListener('data', onData);
             
             // Clean and store the initial output
-            const cleanOutput = this.cleanOutput(initialOutput);
-            this.currentState = cleanOutput;
+            const result = this.cleanOutput(initialOutput);
+            this.currentState = result.output;
             this.gameHistory.push({
               type: 'start',
-              output: cleanOutput,
+              output: result.output,
+              gameStatus: result.gameStatus,
               timestamp: new Date().toISOString()
             });
             
             console.log('Game started successfully');
-            console.log('Clean output:', cleanOutput);
-            resolve(cleanOutput);
+            console.log('Clean output:', result.output);
+            resolve(result);
           }
         };
 
@@ -132,6 +132,22 @@ class ZorkGameEngine {
   }
 
   cleanOutput(rawOutput) {
+    // Extract game status (room, score, moves) before cleaning
+    const statusMatch = rawOutput.match(/^\s*(.+?)\s+Score:\s*(\d+)\s+Moves:\s*(\d+)\s*$/gm);
+    let gameStatus = null;
+    
+    if (statusMatch && statusMatch.length > 0) {
+      const lastStatus = statusMatch[statusMatch.length - 1];
+      const match = lastStatus.match(/^\s*(.+?)\s+Score:\s*(\d+)\s+Moves:\s*(\d+)\s*$/);
+      if (match) {
+        gameStatus = {
+          room: match[1].trim(),
+          score: parseInt(match[2]),
+          moves: parseInt(match[3])
+        };
+      }
+    }
+
     // Remove the status line (Score: X Moves: Y) and clean up formatting
     let cleaned = rawOutput
       // Remove lines that are just status info (Score/Moves)
@@ -157,7 +173,7 @@ class ZorkGameEngine {
       // Trim whitespace
       .trim();
     
-    return cleaned;
+    return { output: cleaned, gameStatus };
   }
 
   async sendCommand(command) {
@@ -197,20 +213,21 @@ class ZorkGameEngine {
           this.dfrotzProcess.stdout.removeListener('data', onData);
           
           // Clean the output
-          const cleanOutput = this.cleanOutput(this.outputBuffer);
+          const result = this.cleanOutput(this.outputBuffer);
           
           this.gameHistory.push({
             type: 'command',
             command: command,
-            output: cleanOutput,
+            output: result.output,
+            gameStatus: result.gameStatus,
             timestamp: new Date().toISOString()
           });
 
-          this.currentState = cleanOutput;
+          this.currentState = result.output;
           this.isProcessingCommand = false;
           this.processCommandQueue();
-          console.log(`Command "${command}" completed. Clean output:`, cleanOutput);
-          resolve(cleanOutput);
+          console.log(`Command "${command}" completed. Clean output:`, result.output);
+          resolve(result);
         }
       };
 
@@ -246,11 +263,10 @@ class ZorkGameEngine {
   async resetGame() {
     console.log('Resetting game...');
     
-    if (this.dfrotzProcess) {
-      this.dfrotzProcess.kill();
-      this.dfrotzProcess = null;
-    }
+    // Kill existing process if any
+    await this.killProcess();
 
+    // Reset state
     this.gameHistory = [];
     this.currentState = '';
     this.outputBuffer = '';
@@ -259,6 +275,50 @@ class ZorkGameEngine {
 
     // Restart the game
     return await this.startGame();
+  }
+
+  async killProcess() {
+    if (this.dfrotzProcess) {
+      console.log('Killing dfrotz process...');
+      
+      return new Promise((resolve) => {
+        const process = this.dfrotzProcess;
+        this.dfrotzProcess = null;
+        
+        // Set up cleanup timeout
+        const timeout = setTimeout(() => {
+          console.log('Force killing dfrotz process...');
+          try {
+            process.kill('SIGKILL');
+          } catch (error) {
+            console.error('Error force killing process:', error);
+          }
+          resolve();
+        }, 2000);
+        
+        // Handle graceful shutdown
+        process.on('close', () => {
+          clearTimeout(timeout);
+          console.log('dfrotz process closed gracefully');
+          resolve();
+        });
+        
+        process.on('error', (error) => {
+          clearTimeout(timeout);
+          console.error('Error during process shutdown:', error);
+          resolve();
+        });
+        
+        // Try graceful shutdown first
+        try {
+          process.kill('SIGTERM');
+        } catch (error) {
+          clearTimeout(timeout);
+          console.error('Error sending SIGTERM:', error);
+          resolve();
+        }
+      });
+    }
   }
 
   isRunning() {
@@ -280,12 +340,16 @@ class ZorkGameEngine {
   async cleanup() {
     console.log('Cleaning up game engine...');
     
-    if (this.dfrotzProcess) {
-      this.dfrotzProcess.kill();
-      this.dfrotzProcess = null;
-    }
-
+    await this.killProcess();
+    
+    // Reset all state
+    this.gameHistory = [];
+    this.currentState = '';
+    this.outputBuffer = '';
+    this.commandQueue = [];
+    this.isProcessingCommand = false;
     this.isInitialized = false;
+    
     console.log('Game engine cleanup complete');
   }
 }

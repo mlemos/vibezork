@@ -50,7 +50,7 @@ class VibeZorkServer {
     this.app.post('/api/game/start', async (req, res) => {
       try {
         const result = await this.gameEngine.startGame();
-        res.json({ success: true, message: 'Game started', output: result });
+        res.json({ success: true, message: 'Game started', output: result.output, gameStatus: result.gameStatus });
       } catch (error) {
         console.error('Error starting game:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -65,11 +65,12 @@ class VibeZorkServer {
         // Broadcast to all connected clients
         this.io.emit('game-output', {
           command,
-          output: result,
+          output: result.output,
+          gameStatus: result.gameStatus,
           timestamp: new Date().toISOString()
         });
         
-        res.json({ success: true, output: result });
+        res.json({ success: true, output: result.output, gameStatus: result.gameStatus });
       } catch (error) {
         console.error('Error sending command:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -82,11 +83,12 @@ class VibeZorkServer {
         
         // Broadcast reset to all connected clients
         this.io.emit('game-reset', {
-          output: result,
+          output: result.output,
+          gameStatus: result.gameStatus,
           timestamp: new Date().toISOString()
         });
         
-        res.json({ success: true, message: 'Game reset', output: result });
+        res.json({ success: true, message: 'Game reset', output: result.output, gameStatus: result.gameStatus });
       } catch (error) {
         console.error('Error resetting game:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -124,7 +126,8 @@ class VibeZorkServer {
           // Broadcast to all clients
           this.io.emit('game-output', {
             command,
-            output: result,
+            output: result.output,
+            gameStatus: result.gameStatus,
             timestamp: new Date().toISOString(),
             fromClient: socket.id
           });

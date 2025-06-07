@@ -143,10 +143,11 @@
   background-color: #0d0d0d;
   border-radius: 8px;
   display: grid;
-  grid-template-rows: 50px 200px minmax(0, 1fr) 80px; /* minmax prevents row expansion */
+  grid-template-rows: 50px 200px auto minmax(0, 1fr) 80px; /* Added auto for status section */
   grid-template-areas:
     "header"
     "graphics"
+    "status"
     "output"
     "input";
   overflow: hidden;
@@ -223,6 +224,38 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+.status-section {
+  grid-area: status;
+  background-color: #000000;
+  border-top: 1px solid #00ff00;
+  border-bottom: 1px solid #00ff00;
+  padding: 8px 15px;
+  background-image: 
+    linear-gradient(90deg, rgba(0, 255, 0, 0.02) 50%, transparent 50%);
+  background-size: 20px 100%;
+}
+
+.status-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #00ff00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.status-room {
+  font-weight: bold;
+  color: #88ff88;
+  text-transform: uppercase;
+}
+
+.status-score, .status-moves {
+  font-weight: normal;
+  color: #00ff00;
 }
 
 .output-section {

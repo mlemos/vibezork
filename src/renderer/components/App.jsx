@@ -14,6 +14,7 @@ const App = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [graphicsMode, setGraphicsMode] = useState('fantasy');
   const [isAIThinking, setIsAIThinking] = useState(false);
+  const [gameStatus, setGameStatus] = useState(null);
 
   useEffect(() => {
     // Set up game service callbacks
@@ -38,12 +39,22 @@ const App = () => {
         setGameOutput(prev => [...prev, data.output]);
       }
       
+      // Update game status if provided
+      if (data.gameStatus) {
+        setGameStatus(data.gameStatus);
+      }
+      
       setAiThoughts(prev => [...prev, `Game response: ${data.output.substring(0, 50)}...`]);
     });
 
     gameService.onGameReset((data) => {
       setGameOutput(['🔄 Game Reset', data.output]);
       setAiThoughts(prev => [...prev, 'Game was reset']);
+      
+      // Update game status if provided
+      if (data.gameStatus) {
+        setGameStatus(data.gameStatus);
+      }
     });
 
     gameService.onError((error) => {
@@ -148,6 +159,7 @@ const App = () => {
         <VibeZorkPanel 
           className="vibezork-panel" 
           gameOutput={gameOutput}
+          gameStatus={gameStatus}
           currentImage={null}
           isGeneratingImage={false}
           onCommand={handleCommand}
