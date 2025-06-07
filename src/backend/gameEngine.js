@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const ImageGenerationService = require('./imageService');
 
 class ZorkGameEngine {
@@ -13,7 +14,7 @@ class ZorkGameEngine {
     this.isProcessingCommand = false;
     
     // Configuration
-    this.dfrotzPath = '/opt/homebrew/bin/dfrotz';
+    this.dfrotzPath = this.findDfrotzPath();
     this.gameFilePath = path.join(process.env.HOME, 'Downloads/zorkpack/zork1_sg.z5');
     
     // Image generation service
@@ -26,15 +27,41 @@ class ZorkGameEngine {
     this.currentRoom = null;
   }
 
+  /**
+   * Find dfrotz binary in common installation paths
+   */
+  findDfrotzPath() {
+    const commonPaths = [
+      '/opt/homebrew/bin/dfrotz',        // Homebrew on Apple Silicon
+      '/usr/local/bin/dfrotz',           // Homebrew on Intel Mac / Manual install
+      '/usr/bin/dfrotz',                 // System package manager
+      '/opt/local/bin/dfrotz',           // MacPorts
+      process.env.DFROTZ_PATH,           // User-specified environment variable
+    ].filter(Boolean); // Remove undefined values
+
+    for (const dfrotzPath of commonPaths) {
+      if (fs.existsSync(dfrotzPath)) {
+        console.log(`Found dfrotz at: ${dfrotzPath}`);
+        return dfrotzPath;
+      }
+    }
+
+    // If none found, default to Homebrew path and let initialization handle the error
+    const defaultPath = '/opt/homebrew/bin/dfrotz';
+    console.warn('dfrotz not found in common paths, using default:', defaultPath);
+    console.warn('Common paths checked:', commonPaths);
+    console.warn('Set DFROTZ_PATH environment variable to specify custom location');
+    return defaultPath;
+  }
+
   async initialize() {
     console.log('Initializing Zork Game Engine...');
     console.log(`dfrotz path: ${this.dfrotzPath}`);
     console.log(`Game file: ${this.gameFilePath}`);
     
     // Verify dfrotz and game file exist
-    const fs = require('fs');
     if (!fs.existsSync(this.dfrotzPath)) {
-      throw new Error(`dfrotz not found at ${this.dfrotzPath}`);
+      throw new Error(`dfrotz not found at ${this.dfrotzPath}. Install dfrotz or set DFROTZ_PATH environment variable.`);
     }
     
     if (!fs.existsSync(this.gameFilePath)) {
