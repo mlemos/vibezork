@@ -89,6 +89,23 @@ const App = () => {
       }
     });
 
+    gameService.onAIPrompt((data) => {
+      console.log('AI prompt received in App:', data.prompt.length, 'characters');
+      setAiThoughts(prev => [
+        ...prev,
+        '🤖 AI analyzing game state...',
+        `📤 Prompt sent to OpenAI (${data.prompt.length} chars): "${data.prompt}"`
+      ]);
+    });
+
+    gameService.onAIResponse((data) => {
+      console.log('AI response received in App:', data.response.length, 'characters');
+      setAiThoughts(prev => [
+        ...prev,
+        `📥 OpenAI Response (${data.response.length} chars): "${data.response}"`
+      ]);
+    });
+
     // Connect to game service
     gameService.connect();
 

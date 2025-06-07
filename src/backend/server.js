@@ -163,8 +163,29 @@ class VibeZorkServer {
           const gameHistory = this.gameEngine.getHistory();
           const currentState = this.gameEngine.getCurrentState();
           
-          // Generate AI command
-          const aiCommand = await this.aiPlayer.generateNextCommand(gameHistory, currentState);
+          // Generate AI command with prompt and response callbacks
+          const aiCommand = await this.aiPlayer.generateNextCommand(
+            gameHistory, 
+            currentState,
+            (prompt) => {
+              // Broadcast the prompt to all clients
+              console.log('Broadcasting AI prompt to clients, length:', prompt.length);
+              this.io.emit('ai-prompt', {
+                prompt: prompt,
+                timestamp: new Date().toISOString(),
+                fromClient: socket.id
+              });
+            },
+            (fullResponse) => {
+              // Broadcast the full AI response to all clients
+              console.log('Broadcasting AI response to clients, length:', fullResponse.length);
+              this.io.emit('ai-response', {
+                response: fullResponse,
+                timestamp: new Date().toISOString(),
+                fromClient: socket.id
+              });
+            }
+          );
           
           if (!aiCommand) {
             socket.emit('error', { message: 'AI player failed to generate command' });

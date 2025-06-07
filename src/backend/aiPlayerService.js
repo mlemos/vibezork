@@ -15,7 +15,7 @@ class AIPlayerService {
   /**
    * Generate a single next command based on game history
    */
-  async generateNextCommand(gameHistory, currentState) {
+  async generateNextCommand(gameHistory, currentState, onPromptReady = null, onResponseReceived = null) {
     if (!this.isEnabled) {
       console.log('AI player disabled - no API key');
       return null;
@@ -27,6 +27,12 @@ class AIPlayerService {
       
       console.log('AI Player: Generating next command...');
       console.log('Context length:', context.length);
+
+      // Notify about the prompt being sent to AI
+      if (onPromptReady) {
+        console.log('Sending prompt to callback:', prompt.length, 'characters');
+        onPromptReady(prompt);
+      }
 
       const response = await this.openai.chat.completions.create({
         model: "gpt-4",
@@ -62,10 +68,16 @@ Examples of good commands:
         temperature: 0.7
       });
 
-      const command = response.choices[0].message.content.trim();
-      console.log('AI Player generated command:', command);
+      const fullResponse = response.choices[0].message.content.trim();
+      console.log('AI Player full response:', fullResponse);
       
-      return this.sanitizeCommand(command);
+      // Notify about the full response received from AI
+      if (onResponseReceived) {
+        console.log('Sending full response to callback:', fullResponse.length, 'characters');
+        onResponseReceived(fullResponse);
+      }
+      
+      return this.sanitizeCommand(fullResponse);
 
     } catch (error) {
       console.error('Error generating AI command:', error);

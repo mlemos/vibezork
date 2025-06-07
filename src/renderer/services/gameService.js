@@ -9,7 +9,9 @@ class GameService {
       onGameReset: null,
       onConnectionChange: null,
       onError: null,
-      onImageGenerated: null
+      onImageGenerated: null,
+      onAIPrompt: null,
+      onAIResponse: null
     };
     this.serverUrl = 'http://localhost:3001';
   }
@@ -81,6 +83,20 @@ class GameService {
       console.log('Image generated received:', data);
       if (this.callbacks.onImageGenerated) {
         this.callbacks.onImageGenerated(data);
+      }
+    });
+
+    this.socket.on('ai-prompt', (data) => {
+      console.log('AI prompt received:', data);
+      if (this.callbacks.onAIPrompt) {
+        this.callbacks.onAIPrompt(data);
+      }
+    });
+
+    this.socket.on('ai-response', (data) => {
+      console.log('AI response received:', data);
+      if (this.callbacks.onAIResponse) {
+        this.callbacks.onAIResponse(data);
       }
     });
   }
@@ -231,6 +247,14 @@ class GameService {
 
   onImageGenerated(callback) {
     this.callbacks.onImageGenerated = callback;
+  }
+
+  onAIPrompt(callback) {
+    this.callbacks.onAIPrompt = callback;
+  }
+
+  onAIResponse(callback) {
+    this.callbacks.onAIResponse = callback;
   }
 
   getConnectionStatus() {
