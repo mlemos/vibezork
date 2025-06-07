@@ -21,6 +21,9 @@ class ZorkGameEngine {
     
     // Callback for when images are generated
     this.onImageGenerated = null;
+    
+    // Track current room for image generation optimization
+    this.currentRoom = null;
   }
 
   async initialize() {
@@ -91,7 +94,10 @@ class ZorkGameEngine {
               timestamp: new Date().toISOString()
             });
             
-            // Generate initial image asynchronously and notify when ready
+            // Always generate image on game start and set initial room
+            if (result.gameStatus?.room) {
+              this.currentRoom = result.gameStatus.room;
+            }
             this.generateImageForOutput(result.output, result.gameStatus, { type: 'start' })
               .catch(error => {
                 console.error('Error generating start image:', error);
@@ -237,11 +243,18 @@ class ZorkGameEngine {
             timestamp: new Date().toISOString()
           });
 
-          // Generate image for command response asynchronously and notify when ready
-          this.generateImageForOutput(result.output, result.gameStatus, { type: 'command', command: command })
-            .catch(error => {
-              console.error('Error generating command image:', error);
-            });
+          // Only generate image if room has changed
+          const newRoom = result.gameStatus?.room;
+          if (newRoom && newRoom !== this.currentRoom) {
+            console.log(`Room changed from "${this.currentRoom}" to "${newRoom}" - generating new image`);
+            this.currentRoom = newRoom;
+            this.generateImageForOutput(result.output, result.gameStatus, { type: 'command', command: command })
+              .catch(error => {
+                console.error('Error generating command image:', error);
+              });
+          } else {
+            console.log(`Same room "${this.currentRoom}" - skipping image generation`);
+          }
 
           this.currentState = result.output;
           this.isProcessingCommand = false;
@@ -292,6 +305,7 @@ class ZorkGameEngine {
     this.outputBuffer = '';
     this.commandQueue = [];
     this.isProcessingCommand = false;
+    this.currentRoom = null; // Reset room tracking
 
     // Restart the game
     return await this.startGame();
@@ -369,6 +383,7 @@ class ZorkGameEngine {
     this.commandQueue = [];
     this.isProcessingCommand = false;
     this.isInitialized = false;
+    this.currentRoom = null;
     
     console.log('Game engine cleanup complete');
   }
