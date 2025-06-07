@@ -71,13 +71,16 @@ class ImageGenerationService {
         model: "dall-e-3",
         prompt: prompt,
         n: 1,
-        size: "1024x1024",
+        size: "1792x1024", // Maximum horizontal format: 1792x1024 (1.75:1 ratio)
         quality: "standard",
         style: "vivid"
       });
 
       const imageUrl = response.data[0].url;
+      const imageDetails = response.data[0];
       console.log('Image generated successfully:', imageUrl);
+      console.log('Image size requested: 1792x1024');
+      console.log('Full response:', JSON.stringify(imageDetails, null, 2));
       
       return {
         url: imageUrl,

@@ -57,7 +57,8 @@ class VibeZorkServer {
     // Game control endpoints
     this.app.post('/api/game/start', async (req, res) => {
       try {
-        const result = await this.gameEngine.startGame();
+        const { graphicsMode = 'fantasy' } = req.body;
+        const result = await this.gameEngine.startGame(graphicsMode);
         res.json({ 
           success: true, 
           message: 'Game started', 
@@ -92,7 +93,8 @@ class VibeZorkServer {
 
     this.app.post('/api/game/reset', async (req, res) => {
       try {
-        const result = await this.gameEngine.resetGame();
+        const { graphicsMode = 'fantasy' } = req.body;
+        const result = await this.gameEngine.resetGame(graphicsMode);
         
         // Broadcast reset to all connected clients
         this.io.emit('game-reset', {
@@ -131,10 +133,10 @@ class VibeZorkServer {
       // Handle client commands via WebSocket
       socket.on('send-command', async (data) => {
         try {
-          const { command } = data;
-          console.log(`Command from ${socket.id}: ${command}`);
+          const { command, graphicsMode = 'fantasy' } = data;
+          console.log(`Command from ${socket.id}: ${command} (Graphics: ${graphicsMode})`);
           
-          const result = await this.gameEngine.sendCommand(command);
+          const result = await this.gameEngine.sendCommand(command, graphicsMode);
           
           // Broadcast to all clients
           this.io.emit('game-output', {

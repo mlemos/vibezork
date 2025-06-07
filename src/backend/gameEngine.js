@@ -45,7 +45,7 @@ class ZorkGameEngine {
     console.log('Game engine initialized (Phase 2 - Real dfrotz Mode)');
   }
 
-  async startGame() {
+  async startGame(graphicsMode = 'fantasy') {
     if (!this.isInitialized) {
       throw new Error('Game engine not initialized');
     }
@@ -98,7 +98,7 @@ class ZorkGameEngine {
             if (result.gameStatus?.room) {
               this.currentRoom = result.gameStatus.room;
             }
-            this.generateImageForOutput(result.output, result.gameStatus, { type: 'start' })
+            this.generateImageForOutput(result.output, result.gameStatus, { type: 'start', graphicsMode: graphicsMode })
               .catch(error => {
                 console.error('Error generating start image:', error);
               });
@@ -196,7 +196,7 @@ class ZorkGameEngine {
     return { output: cleaned, gameStatus };
   }
 
-  async sendCommand(command) {
+  async sendCommand(command, graphicsMode = 'fantasy') {
     if (!this.isInitialized) {
       throw new Error('Game engine not initialized');
     }
@@ -246,9 +246,9 @@ class ZorkGameEngine {
           // Only generate image if room has changed
           const newRoom = result.gameStatus?.room;
           if (newRoom && newRoom !== this.currentRoom) {
-            console.log(`Room changed from "${this.currentRoom}" to "${newRoom}" - generating new image`);
+            console.log(`Room changed from "${this.currentRoom}" to "${newRoom}" - generating new image in ${graphicsMode} style`);
             this.currentRoom = newRoom;
-            this.generateImageForOutput(result.output, result.gameStatus, { type: 'command', command: command })
+            this.generateImageForOutput(result.output, result.gameStatus, { type: 'command', command: command, graphicsMode: graphicsMode })
               .catch(error => {
                 console.error('Error generating command image:', error);
               });
@@ -293,7 +293,7 @@ class ZorkGameEngine {
     }
   }
 
-  async resetGame() {
+  async resetGame(graphicsMode = 'fantasy') {
     console.log('Resetting game...');
     
     // Kill existing process if any
@@ -307,8 +307,8 @@ class ZorkGameEngine {
     this.isProcessingCommand = false;
     this.currentRoom = null; // Reset room tracking
 
-    // Restart the game
-    return await this.startGame();
+    // Restart the game with graphics mode
+    return await this.startGame(graphicsMode);
   }
 
   async killProcess() {
@@ -407,15 +407,23 @@ class ZorkGameEngine {
   /**
    * Create a detailed prompt for image generation
    */
-  createImagePrompt(sceneDescription, gameStatus = null) {
-    // Base style for all Zork images
-    const baseStyle = "fantasy adventure game art, retro 1980s text adventure style, detailed illustration, atmospheric lighting, mysterious and adventurous mood";
+  createImagePrompt(sceneDescription, gameStatus = null, graphicsMode = 'fantasy') {
+    // Define different styles based on graphics mode (matching UX options)
+    const styleMap = {
+      'fantasy': "fantasy adventure game art, retro 1980s text adventure style, detailed illustration, atmospheric lighting, mysterious and adventurous mood, magical elements, medieval fantasy",
+      'realistic': "photorealistic art, natural lighting, realistic textures, modern photography style, detailed environments, lifelike rendering",
+      'pixelart': "pixel art style, 8-bit retro gaming aesthetic, blocky pixels, classic video game art, nostalgic computer graphics, low resolution charm",
+      'sketch': "pencil sketch art, hand-drawn illustration, sketchy lines, artistic drawing style, charcoal and graphite techniques, monochrome sketching"
+    };
+    
+    const styleDescription = styleMap[graphicsMode] || styleMap['fantasy'];
+    const baseStyle = `${styleDescription}, wide landscape composition, panoramic view`;
     
     // Extract location from game status if available
     const location = gameStatus?.room || "mysterious location";
     
-    // Create enhanced prompt
-    const prompt = `${sceneDescription}. ${baseStyle}. Location: ${location}. High quality digital art, no text or UI elements.`;
+    // Create descriptive prompt with clear instructions
+    const prompt = `Generate an image for this scene: ${sceneDescription} (Location: ${location}). Use this artistic style: ${styleDescription}. Create a wide horizontal landscape format, panoramic view. No text or UI elements.`;
     
     return prompt.substring(0, 1000); // DALL-E has prompt length limits
   }
@@ -432,9 +440,13 @@ class ZorkGameEngine {
     try {
       // Extract scene description and create prompt immediately
       const sceneDescription = this.extractSceneDescription(gameOutput);
-      const prompt = this.createImagePrompt(sceneDescription, gameStatus);
+      const graphicsMode = context?.graphicsMode || 'fantasy';
+      const prompt = this.createImagePrompt(sceneDescription, gameStatus, graphicsMode);
       
+      console.log('=== IMAGE GENERATION ===');
+      console.log('Graphics mode:', graphicsMode);
       console.log('Generated prompt:', prompt);
+      console.log('========================');
       
       // Notify about prompt immediately
       if (this.onImageGenerated) {
@@ -445,7 +457,8 @@ class ZorkGameEngine {
           prompt: prompt,
           sceneDescription: sceneDescription,
           output: gameOutput,
-          gameStatus: gameStatus
+          gameStatus: gameStatus,
+          graphicsMode: graphicsMode
         });
       }
 

@@ -143,7 +143,7 @@
   background-color: #0d0d0d;
   border-radius: 8px;
   display: grid;
-  grid-template-rows: 50px 200px auto minmax(0, 1fr) 80px; /* Added auto for status section */
+  grid-template-rows: 50px 1fr auto 1fr 80px; /* Image panel takes 50% of available space */
   grid-template-areas:
     "header"
     "graphics"
@@ -221,9 +221,13 @@
 }
 
 .game-image {
+  width: auto;
+  height: 100%; /* Fill the full height of the panel */
   max-width: 100%;
-  max-height: 100%;
   object-fit: contain;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto; /* Center horizontally if width is less than container */
 }
 
 .status-section {

@@ -75,7 +75,7 @@ const App = () => {
         // Show prompt immediately when generation starts
         setAiThoughts(prev => [
           ...prev,
-          `🎨 Generating ${data.type} scene image...`,
+          `🎨 Generating ${data.type} scene image in ${graphicsMode} style...`,
           `Prompt: "${data.prompt}"`
         ]);
       } else if (data.imageData && data.imageData.url) {
@@ -123,7 +123,7 @@ const App = () => {
     try {
       if (isConnected) {
         // Send via WebSocket for real-time response
-        await gameService.sendCommand(command);
+        await gameService.sendCommand(command, graphicsMode);
       } else {
         // Fallback to local test mode
         setGameOutput(prev => [...prev, `> ${command}`, 'Command received (Phase 1 test - no server connection)']);
@@ -142,7 +142,7 @@ const App = () => {
     
     try {
       if (isConnected) {
-        await gameService.resetGame();
+        await gameService.resetGame(graphicsMode);
       } else {
         setGameOutput(['🔄 Game reset (Phase 1 test - no server connection)']);
         setIsGeneratingImage(false);

@@ -94,14 +94,14 @@ class GameService {
   }
 
   // Send command via WebSocket
-  sendCommand(command) {
+  sendCommand(command, graphicsMode = 'fantasy') {
     if (!this.isConnected || !this.socket) {
       console.error('Not connected to game server');
       return Promise.reject(new Error('Not connected to game server'));
     }
 
     console.log('Sending command via WebSocket:', command);
-    this.socket.emit('send-command', { command });
+    this.socket.emit('send-command', { command, graphicsMode });
     return Promise.resolve(); // WebSocket is fire-and-forget, response comes via event
   }
 
@@ -146,10 +146,14 @@ class GameService {
     }
   }
 
-  async resetGame() {
+  async resetGame(graphicsMode = 'fantasy') {
     try {
       const response = await fetch(`${this.serverUrl}/api/game/reset`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ graphicsMode })
       });
 
       if (!response.ok) {
