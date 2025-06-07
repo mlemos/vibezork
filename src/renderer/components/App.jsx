@@ -60,9 +60,7 @@ const App = () => {
         const status = await gameService.getServerStatus();
         if (status.status === 'running') {
           setBackendStatus('Connected to backend');
-          if (!isConnected && !gameService.getConnectionStatus()) {
-            gameService.connect();
-          }
+          // Don't call connect() again - already connected from line 55
         }
       } catch (error) {
         setBackendStatus('Backend not connected');

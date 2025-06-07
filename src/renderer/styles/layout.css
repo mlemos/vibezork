@@ -286,12 +286,7 @@
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 
-.output-line.command::before {
-  content: ">";
-  margin-right: 5px;
-  color: #00ff00;
-  animation: blink 1s infinite;
-}
+/* Remove ::before since App.jsx already includes > in command text */
 
 .output-line.response {
   color: #88ff88;

@@ -51,7 +51,12 @@ const VibeZorkPanel = ({ gameOutput, currentImage, isGeneratingImage, onCommand,
         <div className="output-content" ref={outputContentRef}>
           {gameOutput.map((line, index) => (
             <div key={index} className={`output-line ${line.startsWith('>') ? 'command' : 'response'}`}>
-              {line}
+              {line.split('\n').map((textLine, lineIndex) => (
+                <React.Fragment key={lineIndex}>
+                  {textLine}
+                  {lineIndex < line.split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
             </div>
           ))}
         </div>

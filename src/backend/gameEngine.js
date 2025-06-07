@@ -109,11 +109,12 @@ class ZorkGameEngine {
   setupProcessHandlers() {
     if (!this.dfrotzProcess) return;
 
-    this.dfrotzProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      this.outputBuffer += output;
-      console.log('Game output (raw):', JSON.stringify(output));
-    });
+    // Don't add general stdout listener - let sendCommand handle its own output
+    // this.dfrotzProcess.stdout.on('data', (data) => {
+    //   const output = data.toString();
+    //   this.outputBuffer += output;
+    //   console.log('Game output (raw):', JSON.stringify(output));
+    // });
 
     this.dfrotzProcess.stderr.on('data', (data) => {
       console.error('Game error:', data.toString());
@@ -145,6 +146,8 @@ class ZorkGameEngine {
       .replace(/ZORK I: The Great Underground Empire.*?\n/g, '')
       // Remove copyright lines
       .replace(/Copyright.*?Infocom.*?\n/g, '')
+      // Remove command echo lines (starts with >)
+      .replace(/^>\s*.*$/gm, '')
       // Remove prompt characters at the end
       .replace(/>\s*$/, '')
       // Remove multiple consecutive newlines
