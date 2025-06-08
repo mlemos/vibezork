@@ -1,5 +1,7 @@
 # VibeZork
 
+![VibeZork](vibezork.png)
+
 VibeZork is an Electron application where users can play Zork, the classic text-based adventure game, enhanced with AI-generated graphics and background music. Experience the classic text adventure in a whole new way with immersive visuals and ambient soundscapes generated in real-time by AI.
 
 ## Features
@@ -232,3 +234,7 @@ This project is for educational and entertainment purposes. Zork is a trademark 
 - **dfrotz** - Z-machine interpreter
 - **AI Models** - Replicate (Flux-Schnell for images, MusicGen for audio), OpenAI (GPT-4)
 - **Framework** - Electron, React, Node.js
+
+## Special Thanks
+
+Special thanks to **[Lukas Nel](https://github.com/LukasNel)** and **[Philippe Mallette](https://github.com/philippemallette)** for their support, hints and great company during the hackathon!
