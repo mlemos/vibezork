@@ -35,7 +35,7 @@ class AIPlayerService {
       }
 
       const response = await this.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4.1",
         messages: [
           {
             role: "system",
