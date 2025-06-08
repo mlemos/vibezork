@@ -266,6 +266,16 @@ class GameService {
     });
   }
 
+  // Update graphics mode immediately
+  updateGraphicsMode(graphicsMode) {
+    if (this.isConnected && this.socket) {
+      console.log('Sending immediate graphics mode update:', graphicsMode);
+      this.socket.emit('update-graphics-mode', { graphicsMode });
+    } else {
+      console.log('Cannot update graphics mode - not connected');
+    }
+  }
+
   // Event listeners
   onGameOutput(callback) {
     this.callbacks.onGameOutput = callback;

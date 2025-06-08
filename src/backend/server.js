@@ -238,6 +238,19 @@ class VibeZorkServer {
         }
       });
 
+      // Handle immediate graphics mode updates
+      socket.on('update-graphics-mode', (data) => {
+        try {
+          const { graphicsMode } = data;
+          if (graphicsMode) {
+            console.log(`Graphics mode updated immediately to: ${graphicsMode} from ${socket.id}`);
+            this.currentGraphicsMode = graphicsMode;
+          }
+        } catch (error) {
+          console.error('Error updating graphics mode:', error);
+        }
+      });
+
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
       });

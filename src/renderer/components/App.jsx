@@ -323,6 +323,9 @@ const App = () => {
   const handleGraphicsModeChange = (mode) => {
     setGraphicsMode(mode);
     setAiThoughts(prev => [...prev, `Graphics mode changed to ${mode}`]);
+    
+    // Immediately update backend graphics mode
+    gameService.updateGraphicsMode(mode);
   };
 
   const handleAutoplaySpeedChange = (speed) => {
