@@ -1,78 +1,248 @@
 # VibeZork
 
-VibeZork is an Electron application where users can play Zork, the classic text-based adventure game, enhanced with AI-generated graphics and music.
+VibeZork is an Electron application where users can play Zork, the classic text-based adventure game, enhanced with AI-generated graphics and background music. Experience the classic text adventure in a whole new way with immersive visuals and ambient soundscapes generated in real-time by AI.
 
-## Phase 1 - Core Infrastructure ✅
+## Features
 
-Phase 1 implements the foundational components:
+- **Classic Zork Gameplay** - Full integration with the original Zork game via dfrotz
+- **AI-Generated Graphics** - Real-time scene visualization using Replicate's Flux-Schnell model
+- **AI Background Music** - Atmospheric music generation for each game location
+- **AI Autoplay Mode** - Watch AI play through the game automatically
+- **Multiple Graphics Styles** - Choose from pixel art, realistic, fantasy art, and more
+- **Modern UI** - Clean, cyberpunk-inspired interface with status monitoring
+- **Click-to-Start** - Smooth loading experience with cover image
 
-- ✅ Electron + React project structure
-- ✅ Backend server with dfrotz integration 
-- ✅ WebSocket communication between frontend and backend
-- ✅ 4-panel UI layout (VibeZork, Input, AI, Controls)
-- ✅ Mock game engine for testing without dfrotz installation
+## Prerequisites
 
-## Quick Start
+### Required Software
+- **Node.js** (v16 or higher)
+- **npm** (comes with Node.js)
+- **dfrotz** - Z-machine interpreter for playing Zork
 
-### Install Dependencies
+### Installing dfrotz
+
+**macOS (using Homebrew):**
+```bash
+brew install frotz
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install frotz
+```
+
+**Other systems:** Download from [David Kinder's website](https://www.davidkinder.co.uk/frotz.html)
+
+### Zork Game File
+You'll need the Zork I game file (`zork1.z5` or `zork1_sg.z5`). Download from:
+- [Interactive Fiction Archive](https://www.ifarchive.org/)
+- [Infocom Downloads](https://web.archive.org/web/20071012025240/http://www.infocom-if.org/downloads/downloads.html)
+
+Place the game file in a directory and note the path for configuration.
+
+## Installation & Setup
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd vibezork
+```
+
+### 2. Install Dependencies
 ```bash
 npm install
 ```
 
-### Test Phase 1 Backend
+### 3. Set Up API Keys
+Create a `.env` file in the root directory with your API keys:
+
 ```bash
-node test-phase1.js
+# Required for AI features
+REPLICATE_API_KEY=your_replicate_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Optional: Custom game file path (defaults to ~/Downloads/zorkpack/zork1_sg.z5)
+ZORK_GAME_PATH=/path/to/your/zork1.z5
 ```
 
-### Run the Full Application
+**Getting API Keys:**
+
+**Replicate API Key:**
+1. Sign up at [replicate.com](https://replicate.com)
+2. Go to Account Settings → API Tokens
+3. Create a new token
+4. Add credits to your account for image/music generation
+
+**OpenAI API Key:**
+1. Sign up at [platform.openai.com](https://platform.openai.com)
+2. Go to API Keys section
+3. Create a new API key
+4. Add billing information to your account
+
+### 4. Test Your Setup
+```bash
+# Test backend functionality
+node test-phase1.js
+
+# Test dfrotz integration
+node test-phase2.js
+```
+
+## Running the Application
+
+### Start the Full Application
 ```bash
 npm run dev
 ```
 
-This will start:
-1. Backend server on port 3001
-2. Webpack dev server on port 8080  
-3. Electron app window
+This command starts:
+1. **Backend server** on port 3001 (Express + WebSocket)
+2. **Webpack dev server** on port 8080 (React frontend)
+3. **Electron app** window
 
-## Testing Phase 1
+### Alternative: Run Components Separately
+```bash
+# Terminal 1: Backend only
+npm run backend
 
-### Backend Tests
-The `test-phase1.js` script verifies:
-- Server startup and API endpoints
-- Game engine mock responses
-- WebSocket communication
-- All CRUD operations for game state
+# Terminal 2: Frontend only  
+npm run webpack:dev
 
-### UI Testing
-After running `npm run dev`:
-1. Verify all 4 panels are visible
-2. Test command input (try: "look", "inventory", "help")
-3. Check AI panel shows command history
-4. Verify controls work (reset, mode switching)
-5. Confirm connection status in status bar
+# Terminal 3: Electron only (after frontend is ready)
+npm run electron:dev
+```
 
-## Architecture
+## How to Use VibeZork
 
-### Backend (`src/backend/`)
-- `server.js` - Express server with WebSocket support
-- `gameEngine.js` - dfrotz wrapper with mock fallback
+### Loading Screen
+1. **Click the loading screen** to start the game
+2. Wait for the connection to establish
 
-### Frontend (`src/renderer/`)
-- `components/` - React components for each panel
-- `services/gameService.js` - WebSocket client and API calls
-- `styles/` - CSS Grid layout and styling
+### Basic Gameplay
+1. **Type commands** in the input field at the bottom of the main panel
+2. **Press Enter** or click **Send** to execute commands
+3. **Common commands:**
+   - `look` - Examine your surroundings
+   - `inventory` - Check what you're carrying
+   - `north`, `south`, `east`, `west` - Move in directions
+   - `take lamp` - Pick up objects
+   - `open mailbox` - Interact with objects
 
-### Electron (`src/electron/`)
-- `main.js` - Main process window management
-- `preload.js` - Secure IPC communication
+### AI Features
 
-## Mock Mode
+**Graphics Generation:**
+- Images generate automatically when you enter new locations
+- Choose graphics style from dropdown: Pixel Art, Realistic, Fantasy Art, Watercolor, Sketch
+- Images appear in the graphics section at the top
 
-Phase 1 includes a mock game engine that simulates Zork responses without requiring dfrotz installation. This allows testing the complete system architecture.
+**Background Music:**
+- Music generates automatically for each new room
+- Toggle with the **Mute/Unmute** button
+- Music crossfades smoothly between locations
 
-## Next Phases
+**AI Autoplay:**
+1. Click **AI Autoplay** to let AI play automatically
+2. Adjust autoplay speed with the slider (1-10 seconds between moves)
+3. Click **AI Single Move** for one AI action
+4. Input is disabled during autoplay mode
 
-- Phase 2: Complete game integration with real dfrotz
-- Phase 3: AI graphics generation 
-- Phase 4: AI player functionality
-- Phase 5: Audio generation and polish
+### Controls Panel
+- **Reset Game** - Restart Zork from the beginning
+- **AI Autoplay** - Toggle automatic AI gameplay
+- **AI Single Move** - Request one AI move
+- **Mute/Unmute** - Control background music
+- **Graphics Mode** - Select visual style for image generation
+- **Autoplay Speed** - Adjust timing between AI moves
+
+### Status Bar
+Monitor real-time status:
+- **Backend** - Connection to game server
+- **AI** - AI thinking/ready status  
+- **Auto** - Manual/autoplay mode
+- **Audio** - Sound on/off
+- **GFX** - Current graphics mode
+
+### AI Panel
+- View AI thoughts and decision-making process
+- See image/music generation progress
+- Monitor AI reasoning during autoplay
+
+## Troubleshooting
+
+### Common Issues
+
+**"Backend not connected"**
+- Ensure dfrotz is installed and in PATH
+- Check that Zork game file exists at specified path
+- Verify port 3001 is available
+
+**"No API token" warnings**
+- Add REPLICATE_API_KEY and OPENAI_API_KEY to `.env` file
+- Restart the application after adding keys
+
+**Images/Music not generating**
+- Verify API keys are valid and have credits
+- Check network connection
+- View browser console for detailed error messages
+
+**Game not responding**
+- Try the **Reset Game** button
+- Check that dfrotz process is running: `ps aux | grep dfrotz`
+- Restart the application
+
+### Debug Mode
+Enable detailed logging by setting:
+```bash
+DEBUG=true npm run dev
+```
+
+### Log Files
+Check generated logs for debugging:
+- `image-log.txt` - Image generation history
+- `music-log.txt` - Music generation history
+
+## Development
+
+### Project Structure
+```
+src/
+├── backend/           # Node.js server
+│   ├── server.js     # Main server with WebSocket
+│   ├── gameEngine.js # dfrotz integration
+│   ├── imageService.js # AI image generation
+│   └── musicService.js # AI music generation
+├── electron/         # Electron main process
+│   ├── main.js      # Window management
+│   └── preload.js   # Security layer
+└── renderer/         # React frontend
+    ├── components/   # UI components
+    ├── services/     # API clients
+    └── styles/       # CSS styling
+```
+
+### Available Scripts
+- `npm run dev` - Start full development environment
+- `npm run backend` - Backend server only
+- `npm run webpack:dev` - Frontend development server
+- `npm run electron:dev` - Electron app only
+- `npm run build` - Production build
+- `npm test` - Run test suite
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is for educational and entertainment purposes. Zork is a trademark of Activision. AI generation services are provided by Replicate and OpenAI.
+
+## Credits
+
+- **Original Zork** - Infocom (1980)
+- **dfrotz** - Z-machine interpreter
+- **AI Models** - Replicate (Flux-Schnell), OpenAI (GPT-4)
+- **Framework** - Electron, React, Node.js
