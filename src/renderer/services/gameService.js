@@ -118,7 +118,7 @@ class GameService {
   }
 
   // Send command via WebSocket
-  sendCommand(command, graphicsMode = 'fantasy') {
+  sendCommand(command, graphicsMode = 'pixelart') {
     if (!this.isConnected || !this.socket) {
       console.error('Not connected to game server');
       return Promise.reject(new Error('Not connected to game server'));
@@ -170,7 +170,7 @@ class GameService {
     }
   }
 
-  async resetGame(graphicsMode = 'fantasy') {
+  async resetGame(graphicsMode = 'pixelart') {
     try {
       const response = await fetch(`${this.serverUrl}/api/game/reset`, {
         method: 'POST',
@@ -225,13 +225,13 @@ class GameService {
   }
 
   // Request AI move via WebSocket
-  requestAIMove() {
+  requestAIMove(graphicsMode = 'pixelart') {
     if (!this.isConnected || !this.socket) {
       console.error('Not connected to game server');
       return Promise.reject(new Error('Not connected to game server'));
     }
 
-    console.log('Requesting AI move via WebSocket');
+    console.log('Requesting AI move via WebSocket with graphics mode:', graphicsMode);
     
     return new Promise((resolve, reject) => {
       // Set up one-time listeners for this AI move
@@ -254,8 +254,8 @@ class GameService {
       this.socket.on('game-output', onGameOutput);
       this.socket.on('error', onError);
       
-      // Send the request
-      this.socket.emit('ai-move');
+      // Send the request with graphics mode
+      this.socket.emit('ai-move', { graphicsMode });
       
       // Timeout after 30 seconds
       setTimeout(() => {

@@ -18,6 +18,7 @@ class VibeZorkServer {
     this.gameEngine = new ZorkGameEngine();
     this.aiPlayer = new AIPlayerService();
     this.port = process.env.PORT || 3001;
+    this.currentGraphicsMode = 'pixelart'; // Track current graphics mode
     
     // Set up media generation callbacks
     this.gameEngine.setImageGeneratedCallback((data) => {
@@ -66,7 +67,9 @@ class VibeZorkServer {
     // Game control endpoints
     this.app.post('/api/game/start', async (req, res) => {
       try {
-        const { graphicsMode = 'fantasy' } = req.body;
+        const { graphicsMode = 'pixelart' } = req.body;
+        // Update current graphics mode
+        this.currentGraphicsMode = graphicsMode;
         const result = await this.gameEngine.startGame(graphicsMode);
         res.json({ 
           success: true, 
@@ -82,8 +85,12 @@ class VibeZorkServer {
 
     this.app.post('/api/game/command', async (req, res) => {
       try {
-        const { command } = req.body;
-        const result = await this.gameEngine.sendCommand(command);
+        const { command, graphicsMode } = req.body;
+        // Update current graphics mode if provided
+        if (graphicsMode) {
+          this.currentGraphicsMode = graphicsMode;
+        }
+        const result = await this.gameEngine.sendCommand(command, this.currentGraphicsMode);
         
         // Broadcast to all connected clients
         this.io.emit('game-output', {
@@ -102,7 +109,9 @@ class VibeZorkServer {
 
     this.app.post('/api/game/reset', async (req, res) => {
       try {
-        const { graphicsMode = 'fantasy' } = req.body;
+        const { graphicsMode = 'pixelart' } = req.body;
+        // Update current graphics mode
+        this.currentGraphicsMode = graphicsMode;
         const result = await this.gameEngine.resetGame(graphicsMode);
         
         // Broadcast reset to all connected clients
@@ -142,8 +151,11 @@ class VibeZorkServer {
       // Handle client commands via WebSocket
       socket.on('send-command', async (data) => {
         try {
-          const { command, graphicsMode = 'fantasy' } = data;
+          const { command, graphicsMode = 'pixelart' } = data;
           console.log(`Command from ${socket.id}: ${command} (Graphics: ${graphicsMode})`);
+          
+          // Update current graphics mode
+          this.currentGraphicsMode = graphicsMode;
           
           const result = await this.gameEngine.sendCommand(command, graphicsMode);
           
@@ -162,9 +174,16 @@ class VibeZorkServer {
       });
 
       // Handle AI move requests
-      socket.on('ai-move', async () => {
+      socket.on('ai-move', async (data = {}) => {
         try {
           console.log(`AI move requested from ${socket.id}`);
+          
+          // Update current graphics mode if provided
+          const { graphicsMode } = data;
+          if (graphicsMode) {
+            console.log(`Updating graphics mode to: ${graphicsMode}`);
+            this.currentGraphicsMode = graphicsMode;
+          }
           
           // Get current game state and history
           const gameHistory = this.gameEngine.getHistory();
@@ -201,8 +220,8 @@ class VibeZorkServer {
           
           console.log(`AI generated command: ${aiCommand}`);
           
-          // Execute the AI command
-          const result = await this.gameEngine.sendCommand(aiCommand, 'fantasy');
+          // Execute the AI command using current graphics mode
+          const result = await this.gameEngine.sendCommand(aiCommand, this.currentGraphicsMode);
           
           // Broadcast to all clients with AI indicator
           this.io.emit('game-output', {

@@ -33,23 +33,28 @@ class ImageGenerationService {
   /**
    * Create a detailed prompt for image generation
    */
-  createImagePrompt(sceneDescription, gameStatus = null) {
-    // Base style for all Zork images
-    const baseStyle = "fantasy adventure game art, retro 1980s text adventure style, detailed illustration, atmospheric lighting, mysterious and adventurous mood";
+  createImagePrompt(sceneDescription, gameStatus = null, graphicsMode = 'pixelart') {
+    // Define different styles based on graphics mode using exact user-provided descriptions
+    const styleMap = {
+      'realistic': "highly detailed, photorealistic, DSLR quality, ultra-real lighting, realistic textures, modern environment",
+      'pixelart': "8-bit pixel art style, low resolution, blocky pixels, retro video game, like 1990s Monkey Island or NES game",
+      'cartoonish': "cartoon style, bold outlines, bright flat colors, simple shading, like Saturday morning cartoons or comics",
+      'ghibli': "anime art style, soft colors, detailed background, whimsical, magical, like a Studio Ghibli film",
+      'fantasy': "fantasy illustration, hand-drawn style, magic RPG artwork, detailed linework, medieval fantasy, concept art"
+    };
     
-    // Extract location from game status if available
-    const location = gameStatus?.room || "mysterious location";
+    const styleDescription = styleMap[graphicsMode] || styleMap['pixelart'];
     
-    // Create enhanced prompt
-    const prompt = `${sceneDescription}. ${baseStyle}. Location: ${location}. High quality digital art, no text or UI elements.`;
+    // Create prompt with simple structure: Scene + "-" + Style
+    const prompt = `${sceneDescription} - ${styleDescription}`;
     
-    return prompt.substring(0, 1000); // DALL-E has prompt length limits
+    return prompt.substring(0, 1000); // Model has prompt length limits
   }
 
   /**
    * Generate image using Replicate Flux model
    */
-  async generateImage(gameOutput, gameStatus = null) {
+  async generateImage(gameOutput, gameStatus = null, graphicsMode = 'pixelart') {
     if (!this.isEnabled) {
       console.log('Image generation disabled - no API token');
       return null;
@@ -66,7 +71,7 @@ class ImageGenerationService {
         return null;
       }
 
-      const prompt = this.createImagePrompt(sceneDescription, gameStatus);
+      const prompt = this.createImagePrompt(sceneDescription, gameStatus, graphicsMode);
       console.log('Image prompt:', prompt);
 
       const input = {
@@ -171,17 +176,17 @@ class ImageGenerationService {
   /**
    * Generate image for game start
    */
-  async generateStartImage(initialGameOutput, gameStatus = null) {
+  async generateStartImage(initialGameOutput, gameStatus = null, graphicsMode = 'pixelart') {
     console.log('Generating start image...');
-    return await this.generateImage(initialGameOutput, gameStatus);
+    return await this.generateImage(initialGameOutput, gameStatus, graphicsMode);
   }
 
   /**
    * Generate image for command response
    */
-  async generateCommandImage(commandOutput, gameStatus = null) {
+  async generateCommandImage(commandOutput, gameStatus = null, graphicsMode = 'pixelart') {
     console.log('Generating command response image...');
-    return await this.generateImage(commandOutput, gameStatus);
+    return await this.generateImage(commandOutput, gameStatus, graphicsMode);
   }
 
   /**

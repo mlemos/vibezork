@@ -220,8 +220,8 @@ const App = () => {
     
     try {
       if (isConnected) {
-        // Request AI move via WebSocket
-        await gameService.requestAIMove();
+        // Request AI move via WebSocket with current graphics mode
+        await gameService.requestAIMove(graphicsMode);
       } else {
         // Fallback to local test mode
         setGameOutput(prev => [...prev, 'AI Move requested (no server connection)']);
