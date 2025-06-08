@@ -76,10 +76,11 @@ const ControlsPanel = ({
           onChange={(e) => onGraphicsModeChange(e.target.value)}
           className="graphics-select"
         >
-          <option value="fantasy">🏰 Fantasy Style</option>
-          <option value="realistic">📷 Realistic</option>
           <option value="pixelart">🎮 Pixel Art</option>
-          <option value="sketch">✏️ Sketch</option>
+          <option value="fantasy">🏰 Fantasy</option>
+          <option value="realistic">📷 Photorealistic</option>
+          <option value="cartoonish">🎨 Cartoonish</option>
+          <option value="ghibli">🌸 Ghibli</option>
         </select>
       </div>
     </div>

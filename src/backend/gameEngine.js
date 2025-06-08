@@ -77,7 +77,7 @@ class ZorkGameEngine {
     console.log('Game engine initialized (Phase 2 - Real dfrotz Mode)');
   }
 
-  async startGame(graphicsMode = 'fantasy') {
+  async startGame(graphicsMode = 'pixelart') {
     if (!this.isInitialized) {
       throw new Error('Game engine not initialized');
     }
@@ -236,7 +236,7 @@ class ZorkGameEngine {
     return { output: cleaned, gameStatus };
   }
 
-  async sendCommand(command, graphicsMode = 'fantasy') {
+  async sendCommand(command, graphicsMode = 'pixelart') {
     if (!this.isInitialized) {
       throw new Error('Game engine not initialized');
     }
@@ -341,7 +341,7 @@ class ZorkGameEngine {
     }
   }
 
-  async resetGame(graphicsMode = 'fantasy') {
+  async resetGame(graphicsMode = 'pixelart') {
     console.log('Resetting game...');
     
     // Kill existing process if any
@@ -453,27 +453,42 @@ class ZorkGameEngine {
   }
 
   /**
+   * Extract clean scene description for image generation (removes Infocom text)
+   */
+  extractSceneDescriptionForImage(gameOutput) {
+    // Remove command echoes and status lines
+    let description = gameOutput
+      .replace(/^>.*$/gm, '') // Remove command lines
+      .replace(/.*Score:\s*\d+\s*Moves:\s*\d+.*$/gm, '') // Remove status lines
+      // Remove Infocom copyright text up to "Version F"
+      .replace(/Infocom interactive fiction - a fantasy story[\s\S]*?Version F/g, '')
+      .replace(/^\s*$/gm, '') // Remove empty lines
+      .trim();
+
+    // Take first meaningful paragraph as scene description
+    const paragraphs = description.split('\n\n').filter(p => p.trim().length > 20);
+    return paragraphs[0] || description;
+  }
+
+  /**
    * Create a detailed prompt for image generation
    */
-  createImagePrompt(sceneDescription, gameStatus = null, graphicsMode = 'fantasy') {
-    // Define different styles based on graphics mode (matching UX options)
+  createImagePrompt(sceneDescription, gameStatus = null, graphicsMode = 'pixelart') {
+    // Define different styles based on graphics mode using exact user-provided descriptions
     const styleMap = {
-      'fantasy': "fantasy adventure game art, retro 1980s text adventure style, detailed illustration, atmospheric lighting, mysterious and adventurous mood, magical elements, medieval fantasy",
-      'realistic': "photorealistic art, natural lighting, realistic textures, modern photography style, detailed environments, lifelike rendering",
-      'pixelart': "pixel art style, 8-bit retro gaming aesthetic, blocky pixels, classic video game art, nostalgic computer graphics, low resolution charm",
-      'sketch': "pencil sketch art, hand-drawn illustration, sketchy lines, artistic drawing style, charcoal and graphite techniques, monochrome sketching"
+      'realistic': "highly detailed, photorealistic, DSLR quality, ultra-real lighting, realistic textures, modern environment",
+      'pixelart': "8-bit pixel art style, low resolution, blocky pixels, retro video game, like 1990s Monkey Island or NES game",
+      'cartoonish': "cartoon style, bold outlines, bright flat colors, simple shading, like Saturday morning cartoons or comics",
+      'ghibli': "anime art style, soft colors, detailed background, whimsical, magical, like a Studio Ghibli film",
+      'fantasy': "fantasy illustration, hand-drawn style, magic RPG artwork, detailed linework, medieval fantasy, concept art"
     };
     
-    const styleDescription = styleMap[graphicsMode] || styleMap['fantasy'];
-    const baseStyle = `${styleDescription}, wide landscape composition, panoramic view`;
+    const styleDescription = styleMap[graphicsMode] || styleMap['pixelart'];
     
-    // Extract location from game status if available
-    const location = gameStatus?.room || "mysterious location";
+    // Create prompt with simple structure: Scene + "-" + Style
+    const prompt = `${sceneDescription} - ${styleDescription}`;
     
-    // Create descriptive prompt with clear instructions
-    const prompt = `Generate an image for this scene: ${sceneDescription} (Location: ${location}). Use this artistic style: ${styleDescription}. Create a wide horizontal landscape format, panoramic view. No text or UI elements.`;
-    
-    return prompt.substring(0, 1000); // DALL-E has prompt length limits
+    return prompt.substring(0, 1000); // Model has prompt length limits
   }
 
   /**
@@ -487,8 +502,8 @@ class ZorkGameEngine {
 
     try {
       // Extract scene description and create prompt immediately
-      const sceneDescription = this.extractSceneDescription(gameOutput);
-      const graphicsMode = context?.graphicsMode || 'fantasy';
+      const sceneDescription = this.extractSceneDescriptionForImage(gameOutput);
+      const graphicsMode = context?.graphicsMode || 'pixelart';
       const prompt = this.createImagePrompt(sceneDescription, gameStatus, graphicsMode);
       
       console.log('=== IMAGE GENERATION ===');
@@ -510,7 +525,7 @@ class ZorkGameEngine {
         });
       }
 
-      const imageData = await this.imageService.generateImage(gameOutput, gameStatus);
+      const imageData = await this.imageService.generateImageWithPrompt(prompt, gameStatus);
       if (imageData) {
         console.log('Image generated for game output');
         

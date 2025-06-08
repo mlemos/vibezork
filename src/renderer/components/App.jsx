@@ -12,16 +12,20 @@ const App = () => {
   const [aiThoughts, setAiThoughts] = useState(['AI Panel initialized (Phase 1)', 'Waiting for game integration...']);
   const [isAIPlaying, setIsAIPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [graphicsMode, setGraphicsMode] = useState('fantasy');
+  const [graphicsMode, setGraphicsMode] = useState('pixelart');
   const [autoplaySpeed, setAutoplaySpeed] = useState(2); // seconds between moves
   const [isAIThinking, setIsAIThinking] = useState(false);
   const autoplayRef = useRef(false); // Use ref to track autoplay state for closures
   const [gameStatus, setGameStatus] = useState(null);
+  const previousRoomRef = useRef(null); // Track previous room for delay calculation
+  const roomJustChangedRef = useRef(false); // Flag for room change delay
   const [currentImage, setCurrentImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [currentMusic, setCurrentMusic] = useState(null);
   const [isGeneratingMusic, setIsGeneratingMusic] = useState(false);
-  const audioRef = useRef(null); // For audio playback
+  const audioRef1 = useRef(null); // Primary audio element
+  const audioRef2 = useRef(null); // Secondary audio element for crossfading
+  const [activeAudioRef, setActiveAudioRef] = useState(1); // Track which audio element is active
 
   useEffect(() => {
     // Set up game service callbacks
@@ -48,7 +52,20 @@ const App = () => {
       
       // Update game status if provided
       if (data.gameStatus) {
+        // Check for room change before updating
+        const newRoom = data.gameStatus.room;
+        const previousRoom = previousRoomRef.current;
+        
+        if (newRoom && previousRoom && newRoom !== previousRoom) {
+          console.log('Room changed detected:', previousRoom, '→', newRoom);
+          roomJustChangedRef.current = true;
+        }
+        
         setGameStatus(data.gameStatus);
+        // Update previous room tracking
+        if (newRoom) {
+          previousRoomRef.current = newRoom;
+        }
       }
 
       // Note: Images now come via separate image-generated event
@@ -63,6 +80,11 @@ const App = () => {
       // Update game status if provided
       if (data.gameStatus) {
         setGameStatus(data.gameStatus);
+        // Update previous room tracking for game reset
+        if (data.gameStatus.room) {
+          previousRoomRef.current = data.gameStatus.room;
+          roomJustChangedRef.current = false; // Reset flag on game reset
+        }
       }
 
       // Note: Images now come via separate image-generated event
@@ -135,11 +157,11 @@ const App = () => {
         ]);
         
         // Start playing the music if not muted
-        console.log('Checking music playback conditions:', { isMuted, hasAudioRef: !!audioRef.current });
-        if (!isMuted && audioRef.current) {
+        console.log('Checking music playback conditions:', { isMuted, hasAudioRefs: !!audioRef1.current && !!audioRef2.current });
+        if (!isMuted && audioRef1.current && audioRef2.current) {
           playMusic(data.musicData.url);
         } else {
-          console.log('Not playing music:', isMuted ? 'muted' : 'no audio ref');
+          console.log('Not playing music:', isMuted ? 'muted' : 'no audio refs');
         }
       }
     });
@@ -223,13 +245,22 @@ const App = () => {
     try {
       console.log('Calling handleAIMove...');
       await handleAIMove(); // Wait for AI move to complete
-      console.log('handleAIMove completed, scheduling next move in', autoplaySpeed, 'seconds');
+      
+      // Check if room just changed using flag
+      const roomChanged = roomJustChangedRef.current;
+      const delayMultiplier = roomChanged ? 3 : 1;
+      const actualDelay = autoplaySpeed * delayMultiplier;
+      
+      console.log('handleAIMove completed, room changed:', roomChanged, 'scheduling next move in', actualDelay, 'seconds');
+      
+      // Reset flag after using it
+      roomJustChangedRef.current = false;
       
       // Schedule next move only after current one finishes
       setTimeout(() => {
         console.log('Timeout fired, calling executeNextAIMove again, autoplayRef.current:', autoplayRef.current);
         executeNextAIMove(); // Recursive call
-      }, autoplaySpeed * 1000);
+      }, actualDelay * 1000);
       
     } catch (error) {
       console.error('Autoplay stopped due to error:', error);
@@ -281,14 +312,11 @@ const App = () => {
     setAiThoughts(prev => [...prev, `Audio ${newMuteState ? 'muted' : 'unmuted'}`]);
     
     // Handle music playback based on mute state using volume control
-    if (audioRef.current) {
-      if (newMuteState) {
-        audioRef.current.volume = 0;
-        console.log('Music muted via volume control');
-      } else {
-        audioRef.current.volume = 0.3;
-        console.log('Music unmuted via volume control');
-      }
+    if (audioRef1.current && audioRef2.current) {
+      const targetVolume = newMuteState ? 0 : 0.3;
+      audioRef1.current.volume = targetVolume;
+      audioRef2.current.volume = targetVolume;
+      console.log('Music', newMuteState ? 'muted' : 'unmuted', 'via volume control');
     }
   };
 
@@ -303,55 +331,110 @@ const App = () => {
   };
 
   const playMusic = (musicUrl) => {
-    if (audioRef.current && musicUrl) {
-      try {
-        console.log('Attempting to play music:', musicUrl);
-        audioRef.current.src = musicUrl;
-        audioRef.current.loop = true;
-        audioRef.current.volume = isMuted ? 0 : 0.3; // Check mute state
-        
-        audioRef.current.addEventListener('loadstart', () => console.log('Music loading started'));
-        audioRef.current.addEventListener('canplay', () => console.log('Music can start playing'));
-        audioRef.current.addEventListener('playing', () => console.log('Music is playing'));
-        audioRef.current.addEventListener('error', (e) => console.error('Music error:', e));
-        
-        audioRef.current.play().then(() => {
-          console.log('Music playback started successfully, volume:', audioRef.current.volume);
-          setAiThoughts(prev => [...prev, `🎵 Now playing background music ${isMuted ? '(muted)' : ''}`]);
-        }).catch(error => {
-          console.error('Failed to play music:', error);
-          setAiThoughts(prev => [...prev, `❌ Failed to play music: ${error.message}`]);
-        });
-      } catch (error) {
-        console.error('Error setting up music:', error);
-      }
-    } else {
-      console.log('No audio ref or music URL:', { audioRef: !!audioRef.current, musicUrl });
+    if (!audioRef1.current || !audioRef2.current || !musicUrl) {
+      console.log('Missing audio refs or music URL:', { 
+        audioRef1: !!audioRef1.current, 
+        audioRef2: !!audioRef2.current, 
+        musicUrl 
+      });
+      return;
+    }
+
+    try {
+      console.log('Starting crossfade to new music:', musicUrl);
+      
+      // Determine which audio element to use for new track
+      const currentAudioRef = activeAudioRef === 1 ? audioRef1.current : audioRef2.current;
+      const newAudioRef = activeAudioRef === 1 ? audioRef2.current : audioRef1.current;
+      
+      // Set up new track
+      newAudioRef.src = musicUrl;
+      newAudioRef.loop = true;
+      newAudioRef.volume = 0; // Start at 0 for crossfade
+      
+      newAudioRef.addEventListener('canplay', () => {
+        console.log('New music ready, starting crossfade');
+        crossfadeMusic(currentAudioRef, newAudioRef);
+      }, { once: true });
+      
+      newAudioRef.addEventListener('error', (e) => {
+        console.error('New music error:', e);
+        setAiThoughts(prev => [...prev, `❌ Failed to load new music`]);
+      });
+      
+      newAudioRef.load(); // Trigger loading
+      
+    } catch (error) {
+      console.error('Error setting up music crossfade:', error);
     }
   };
 
+  const crossfadeMusic = (fromAudio, toAudio) => {
+    const crossfadeDuration = 2000; // 2 seconds
+    const steps = 50;
+    const stepDuration = crossfadeDuration / steps;
+    const volumeStep = 0.3 / steps; // Max volume is 0.3
+    
+    let currentStep = 0;
+    
+    // Start playing new track
+    toAudio.play().catch(error => {
+      console.error('Failed to play new music:', error);
+      return;
+    });
+    
+    const crossfadeInterval = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      
+      // Fade out current track
+      if (fromAudio && !fromAudio.paused) {
+        fromAudio.volume = Math.max(0, (1 - progress) * (isMuted ? 0 : 0.3));
+      }
+      
+      // Fade in new track
+      toAudio.volume = Math.min(isMuted ? 0 : 0.3, progress * (isMuted ? 0 : 0.3));
+      
+      if (currentStep >= steps) {
+        clearInterval(crossfadeInterval);
+        
+        // Stop and reset old track
+        if (fromAudio && !fromAudio.paused) {
+          fromAudio.pause();
+          fromAudio.currentTime = 0;
+          fromAudio.volume = 0;
+        }
+        
+        console.log('Crossfade complete');
+        setActiveAudioRef(activeAudioRef === 1 ? 2 : 1);
+        setAiThoughts(prev => [...prev, `🎵 Now playing background music ${isMuted ? '(muted)' : ''}`]);
+      }
+    }, stepDuration);
+  };
+
   const stopMusic = () => {
-    if (audioRef.current) {
-      console.log('Stopping music - current state:', {
-        src: audioRef.current.src,
-        paused: audioRef.current.paused,
-        currentTime: audioRef.current.currentTime,
-        volume: audioRef.current.volume
+    if (audioRef1.current && audioRef2.current) {
+      console.log('Stopping all music');
+      
+      [audioRef1.current, audioRef2.current].forEach(audio => {
+        if (!audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 0;
+        }
       });
       
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current.volume = 0; // Also mute the volume
-      console.log('Music stopped');
+      console.log('All music stopped');
     } else {
-      console.log('No audio element to stop');
+      console.log('No audio elements to stop');
     }
   };
 
   return (
     <div className="app-container">
-      {/* Hidden audio element for background music */}
-      <audio ref={audioRef} preload="auto" />
+      {/* Hidden audio elements for crossfading background music */}
+      <audio ref={audioRef1} preload="auto" />
+      <audio ref={audioRef2} preload="auto" />
       
       <div className="status-bar">
         <span className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
