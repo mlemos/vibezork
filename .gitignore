@@ -49,6 +49,8 @@ test.html
 # Logs
 logs
 *.log
+image-log.txt
+music-log.txt
 
 # Coverage directory used by tools like istanbul
 coverage/
