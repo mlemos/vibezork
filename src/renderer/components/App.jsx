@@ -12,6 +12,7 @@ const App = () => {
   const [aiThoughts, setAiThoughts] = useState(['AI Panel initialized (Phase 1)', 'Waiting for game integration...']);
   const [isAIPlaying, setIsAIPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
   const [graphicsMode, setGraphicsMode] = useState('pixelart');
   const [autoplaySpeed, setAutoplaySpeed] = useState(2); // seconds between moves
   const [isAIThinking, setIsAIThinking] = useState(false);
@@ -27,6 +28,11 @@ const App = () => {
   const audioRef1 = useRef(null); // Primary audio element
   const audioRef2 = useRef(null); // Secondary audio element for crossfading
   const [activeAudioRef, setActiveAudioRef] = useState(1); // Track which audio element is active
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
   useEffect(() => {
     // Set up game service callbacks
@@ -157,12 +163,12 @@ const App = () => {
           `🎵 Music URL: ${data.musicData.url}`
         ]);
         
-        // Start playing the music if not muted
-        console.log('Checking music playback conditions:', { isMuted, hasAudioRefs: !!audioRef1.current && !!audioRef2.current });
-        if (!isMuted && audioRef1.current && audioRef2.current) {
+        // Always try to play music - let playMusic handle mute checking
+        console.log('Music generated, attempting playback');
+        if (audioRef1.current && audioRef2.current) {
           playMusic(data.musicData.url);
         } else {
-          console.log('Not playing music:', isMuted ? 'muted' : 'no audio refs');
+          console.log('Not playing music: no audio refs');
         }
       }
     });
@@ -323,6 +329,7 @@ const App = () => {
   const handleMuteToggle = () => {
     const newMuteState = !isMuted;
     setIsMuted(newMuteState);
+    isMutedRef.current = newMuteState;
     setAiThoughts(prev => [...prev, `Audio ${newMuteState ? 'muted' : 'unmuted'}`]);
     
     // Handle music playback based on mute state using volume control
@@ -355,6 +362,12 @@ const App = () => {
         audioRef2: !!audioRef2.current, 
         musicUrl 
       });
+      return;
+    }
+
+    // Check current mute state when actually playing
+    if (isMutedRef.current) {
+      console.log('Music is muted - not starting playback');
       return;
     }
 
@@ -407,11 +420,11 @@ const App = () => {
       
       // Fade out current track
       if (fromAudio && !fromAudio.paused) {
-        fromAudio.volume = Math.max(0, (1 - progress) * (isMuted ? 0 : 0.3));
+        fromAudio.volume = Math.max(0, (1 - progress) * (isMutedRef.current ? 0 : 0.3));
       }
       
       // Fade in new track
-      toAudio.volume = Math.min(isMuted ? 0 : 0.3, progress * (isMuted ? 0 : 0.3));
+      toAudio.volume = Math.min(isMutedRef.current ? 0 : 0.3, progress * (isMutedRef.current ? 0 : 0.3));
       
       if (currentStep >= steps) {
         clearInterval(crossfadeInterval);

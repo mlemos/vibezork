@@ -9,9 +9,7 @@
   background-color: #000000;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 15px;
-  border-bottom: 1px solid #00ff00;
   font-size: 11px;
   font-family: 'Courier New', monospace;
   background-image: repeating-linear-gradient(
@@ -98,7 +96,7 @@
   height: calc(100vh - 35px);
   max-height: calc(100vh - 35px); /* Enforce height constraint */
   gap: 10px;
-  padding: 10px;
+  padding: 0 10px 10px 10px;
   overflow: hidden; /* Prevent grid items from expanding beyond container */
 }
 
@@ -233,7 +231,6 @@
 .status-section {
   grid-area: status;
   background-color: #000000;
-  border-top: 1px solid #00ff00;
   border-bottom: 1px solid #00ff00;
   padding: 8px 15px;
   background-image: 
@@ -625,6 +622,8 @@
   line-height: 1.4;
   color: #88ff88;
   font-family: 'Courier New', monospace;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .thinking-indicator {
