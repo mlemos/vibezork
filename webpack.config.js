@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isDevelopment = argv.mode === 'development';
@@ -54,6 +55,15 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'src/renderer/index.html'),
         filename: 'index.html'
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: path.resolve(__dirname, 'public'),
+            to: path.resolve(__dirname, 'dist'),
+            noErrorOnMissing: true
+          }
+        ]
       })
     ],
     
@@ -61,9 +71,15 @@ module.exports = (env, argv) => {
       port: 8080,
       hot: false, // Disable hot reloading to avoid Node.js dependencies
       liveReload: true, // Use live reload instead
-      static: {
-        directory: path.join(__dirname, 'dist')
-      },
+      static: [
+        {
+          directory: path.join(__dirname, 'dist')
+        },
+        {
+          directory: path.join(__dirname, 'public'),
+          publicPath: '/'
+        }
+      ],
       historyApiFallback: true,
       client: {
         logging: 'warn', // Reduce console noise

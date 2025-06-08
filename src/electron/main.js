@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Menu } = require('electron');
 const path = require('path');
 
 class VibeZorkApp {
@@ -12,6 +12,7 @@ class VibeZorkApp {
       width: 1200,
       height: 800,
       fullscreen: false, // Start windowed for development
+      fullscreenable: true, // Allow fullscreen capability
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -40,7 +41,6 @@ class VibeZorkApp {
     if (this.isDev) {
       console.log('Loading development URL: http://localhost:8080');
       this.mainWindow.loadURL('http://localhost:8080');
-      this.mainWindow.webContents.openDevTools();
     } else {
       this.mainWindow.loadFile(path.join(__dirname, '../renderer/dist/index.html'));
     }
@@ -53,6 +53,11 @@ class VibeZorkApp {
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
     });
+
+    // Enable native fullscreen on macOS
+    if (process.platform === 'darwin') {
+      this.mainWindow.setSimpleFullScreen(false);
+    }
   }
 
   setupIPC() {
@@ -76,10 +81,75 @@ class VibeZorkApp {
     });
   }
 
+  setupMenu() {
+    const template = [
+      {
+        label: 'View',
+        submenu: [
+          {
+            label: 'Toggle Fullscreen',
+            accelerator: process.platform === 'darwin' ? 'Ctrl+Cmd+F' : 'F11',
+            click: () => {
+              if (this.mainWindow) {
+                this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+              }
+            }
+          },
+          {
+            label: 'Reload',
+            accelerator: 'CmdOrCtrl+R',
+            click: () => {
+              if (this.mainWindow) {
+                this.mainWindow.reload();
+              }
+            }
+          },
+          {
+            label: 'Toggle Developer Tools',
+            accelerator: process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Ctrl+Shift+I',
+            click: () => {
+              if (this.mainWindow) {
+                this.mainWindow.webContents.toggleDevTools();
+              }
+            }
+          }
+        ]
+      }
+    ];
+
+    if (process.platform === 'darwin') {
+      template.unshift({
+        label: app.getName(),
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideothers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      });
+    }
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+  }
+
   init() {
     app.whenReady().then(() => {
       this.createWindow();
       this.setupIPC();
+      this.setupMenu();
+
+      // Register global shortcut for fullscreen
+      globalShortcut.register(process.platform === 'darwin' ? 'Ctrl+Cmd+F' : 'F11', () => {
+        if (this.mainWindow) {
+          this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+        }
+      });
 
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -92,6 +162,11 @@ class VibeZorkApp {
       if (process.platform !== 'darwin') {
         app.quit();
       }
+    });
+
+    app.on('will-quit', () => {
+      // Unregister all shortcuts
+      globalShortcut.unregisterAll();
     });
   }
 }

@@ -27,9 +27,10 @@
             width: 100vw;
             height: 100vh;
             background-color: #000000;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(0, 255, 0, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.03) 0%, transparent 50%);
+            background-image: url('/cover.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -37,15 +38,19 @@
             z-index: 9999;
         }
         
+        /* Overlay removed for full image visibility */
+        
         .loading-title {
             font-size: 48px;
             font-weight: bold;
             color: #00ff00;
             margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.8), 0 0 40px rgba(0, 255, 0, 0.6);
             font-family: 'Courier New', monospace;
             text-transform: uppercase;
             letter-spacing: 4px;
+            position: relative;
+            z-index: 1;
         }
         
         .loading-subtitle {
@@ -54,6 +59,9 @@
             margin-bottom: 40px;
             font-family: 'Courier New', monospace;
             text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            position: relative;
+            z-index: 1;
         }
         
         .loading-spinner {
@@ -64,11 +72,43 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .click-to-start {
+            margin-top: 40px;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(4px);
+        }
+        
+        .click-to-start:hover {
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+            transform: scale(1.05);
         }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
         }
     </style>
 </head>
@@ -77,7 +117,8 @@
         <div class="loading-screen" id="loading-screen">
             <div class="loading-title">VibeZork</div>
             <div class="loading-subtitle">AI-Enhanced Text Adventure</div>
-            <div class="loading-spinner"></div>
+            <div class="loading-spinner" id="loading-spinner"></div>
+            <button class="click-to-start" id="start-button" style="display: none;">Click to Start</button>
         </div>
     </div>
     
@@ -86,18 +127,56 @@
         window.global = window;
         window.process = window.process || { env: {} };
         
-        // Hide loading screen once React app loads
+        let userClicked = false;
+        
+        // Flag to prevent React app from starting
+        window.appCanStart = false;
+        
+        function startApp() {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                loadingScreen.style.transition = 'opacity 0.5s ease-out';
+                setTimeout(() => {
+                    loadingScreen.remove();
+                    // Now allow React app to start
+                    window.appCanStart = true;
+                    // Trigger React app start event
+                    window.dispatchEvent(new CustomEvent('startReactApp'));
+                }, 500);
+            }
+        }
+        
+        // Show click to start button after initial loading
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    loadingScreen.style.transition = 'opacity 0.5s ease-out';
-                    setTimeout(() => {
-                        loadingScreen.remove();
-                    }, 500);
+                const spinner = document.getElementById('loading-spinner');
+                const startButton = document.getElementById('start-button');
+                
+                if (spinner && startButton) {
+                    spinner.style.display = 'none';
+                    startButton.style.display = 'block';
                 }
-            }, 1000);
+            }, 2000); // 2 second delay before showing start button
+        });
+        
+        // Handle click to start
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'start-button' && !userClicked) {
+                userClicked = true;
+                startApp();
+            }
+        });
+        
+        // Also allow Enter key to start
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !userClicked) {
+                const startButton = document.getElementById('start-button');
+                if (startButton && startButton.style.display !== 'none') {
+                    userClicked = true;
+                    startApp();
+                }
+            }
         });
     </script>
 </body>
