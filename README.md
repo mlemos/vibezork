@@ -4,15 +4,15 @@ VibeZork is an Electron application where users can play Zork, the classic text-
 
 ## Features
 
-- **Classic Zork Gameplay** - Full integration with the original Zork game via dfrotz
-- **AI-Generated Graphics** - Real-time scene visualization using Replicate's Flux-Schnell model
-- **AI Background Music** - Atmospheric music generation for each game location
-- **AI Autoplay Mode** - Watch AI play through the game automatically
-- **Multiple Graphics Styles** - Choose from pixel art, realistic, fantasy art, and more
-- **Modern UI** - Clean, cyberpunk-inspired interface with status monitoring
-- **Click-to-Start** - Smooth loading experience with cover image
+- **Classic Zork Gameplay** - Full integration with the original Zork game via dfrotz.
+- **AI-Generated Graphics** - Real-time scene visualization using Replicate's Flux-Schnell model.
+- **AI Background Music** - Atmospheric music generation for each game location.
+- **AI Autoplay Mode** - Watch AI play through the game automatically.
+- **Multiple Graphics Styles** - Choose from pixel art, realistic, fantasy art, and more.
 
 ## Prerequisites
+
+This instruction are for macOS, but it should be easy to adapt to other systems.
 
 ### Required Software
 - **Node.js** (v16 or higher)
@@ -26,19 +26,18 @@ VibeZork is an Electron application where users can play Zork, the classic text-
 brew install frotz
 ```
 
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install frotz
-```
-
 **Other systems:** Download from [David Kinder's website](https://www.davidkinder.co.uk/frotz.html)
 
 ### Zork Game File
-You'll need the Zork I game file (`zork1.z5` or `zork1_sg.z5`). Download from:
-- [Interactive Fiction Archive](https://www.ifarchive.org/)
-- [Infocom Downloads](https://web.archive.org/web/20071012025240/http://www.infocom-if.org/downloads/downloads.html)
+You'll need the Zork I game file `zork1_sg.z5`.
 
-Place the game file in a directory and note the path for configuration.
+Find it here: https://datadrivengamer.blogspot.com/2019/04/game-55-zork-i.html
+
+Place the game file at `~/Downloads/zorkpack/zork1_sg.z5`.
+
+The app expects this exact location.
+
+But this is easy to change if you want to. 
 
 ## Installation & Setup
 
@@ -60,9 +59,6 @@ Create a `.env` file in the root directory with your API keys:
 # Required for AI features
 REPLICATE_API_KEY=your_replicate_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
-
-# Optional: Custom game file path (defaults to ~/Downloads/zorkpack/zork1_sg.z5)
-ZORK_GAME_PATH=/path/to/your/zork1.z5
 ```
 
 **Getting API Keys:**
@@ -71,22 +67,12 @@ ZORK_GAME_PATH=/path/to/your/zork1.z5
 1. Sign up at [replicate.com](https://replicate.com)
 2. Go to Account Settings → API Tokens
 3. Create a new token
-4. Add credits to your account for image/music generation
 
 **OpenAI API Key:**
 1. Sign up at [platform.openai.com](https://platform.openai.com)
 2. Go to API Keys section
 3. Create a new API key
-4. Add billing information to your account
 
-### 4. Test Your Setup
-```bash
-# Test backend functionality
-node test-phase1.js
-
-# Test dfrotz integration
-node test-phase2.js
-```
 
 ## Running the Application
 
@@ -244,5 +230,5 @@ This project is for educational and entertainment purposes. Zork is a trademark 
 
 - **Original Zork** - Infocom (1980)
 - **dfrotz** - Z-machine interpreter
-- **AI Models** - Replicate (Flux-Schnell), OpenAI (GPT-4)
+- **AI Models** - Replicate (Flux-Schnell for images, MusicGen for audio), OpenAI (GPT-4)
 - **Framework** - Electron, React, Node.js
