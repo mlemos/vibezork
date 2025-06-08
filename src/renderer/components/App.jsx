@@ -16,6 +16,7 @@ const App = () => {
   const [autoplaySpeed, setAutoplaySpeed] = useState(2); // seconds between moves
   const [isAIThinking, setIsAIThinking] = useState(false);
   const autoplayRef = useRef(false); // Use ref to track autoplay state for closures
+  const graphicsModeRef = useRef('pixelart'); // Use ref to track graphics mode for closures
   const [gameStatus, setGameStatus] = useState(null);
   const previousRoomRef = useRef(null); // Track previous room for delay calculation
   const roomJustChangedRef = useRef(false); // Flag for room change delay
@@ -214,14 +215,14 @@ const App = () => {
   };
 
   const handleAIMove = async () => {
-    console.log('AI Move requested');
+    console.log('AI Move requested with current graphics mode:', graphicsModeRef.current);
     setAiThoughts(prev => [...prev, 'AI thinking...']);
     setIsGeneratingImage(true); // Start loading state for image
     
     try {
       if (isConnected) {
-        // Request AI move via WebSocket with current graphics mode
-        await gameService.requestAIMove(graphicsMode);
+        // Request AI move via WebSocket with CURRENT graphics mode from ref
+        await gameService.requestAIMove(graphicsModeRef.current);
       } else {
         // Fallback to local test mode
         setGameOutput(prev => [...prev, 'AI Move requested (no server connection)']);
@@ -243,15 +244,27 @@ const App = () => {
     }
     
     try {
-      console.log('Calling handleAIMove...');
-      await handleAIMove(); // Wait for AI move to complete
+      console.log('Calling handleAIMove with current graphics mode:', graphicsModeRef.current);
+      
+      // Use current graphics mode state at execution time
+      setAiThoughts(prev => [...prev, 'AI thinking...']);
+      setIsGeneratingImage(true); // Start loading state for image
+      
+      if (isConnected) {
+        // Request AI move via WebSocket with CURRENT graphics mode from ref
+        await gameService.requestAIMove(graphicsModeRef.current);
+      } else {
+        // Fallback to local test mode
+        setGameOutput(prev => [...prev, 'AI Move requested (no server connection)']);
+        setIsGeneratingImage(false);
+      }
       
       // Check if room just changed using flag
       const roomChanged = roomJustChangedRef.current;
       const delayMultiplier = roomChanged ? 3 : 1;
       const actualDelay = autoplaySpeed * delayMultiplier;
       
-      console.log('handleAIMove completed, room changed:', roomChanged, 'scheduling next move in', actualDelay, 'seconds');
+      console.log('AI move completed, room changed:', roomChanged, 'scheduling next move in', actualDelay, 'seconds');
       
       // Reset flag after using it
       roomJustChangedRef.current = false;
@@ -267,6 +280,7 @@ const App = () => {
       autoplayRef.current = false;
       setIsAIPlaying(false); // Stop autoplay on error
       setAiThoughts(prev => [...prev, `⏸️ Autoplay paused: ${error.message}`]);
+      setIsGeneratingImage(false);
     }
   };
 
@@ -322,6 +336,7 @@ const App = () => {
 
   const handleGraphicsModeChange = (mode) => {
     setGraphicsMode(mode);
+    graphicsModeRef.current = mode; // Update ref for closure access
     setAiThoughts(prev => [...prev, `Graphics mode changed to ${mode}`]);
     
     // Immediately update backend graphics mode
@@ -464,7 +479,7 @@ const App = () => {
           currentImage={currentImage}
           isGeneratingImage={isGeneratingImage}
           onCommand={handleCommand}
-          disabled={false}
+          disabled={isAIPlaying}
         />
         <div className="sidebar">
           <AIPanel 
