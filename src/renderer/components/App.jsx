@@ -19,6 +19,9 @@ const App = () => {
   const [gameStatus, setGameStatus] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [currentMusic, setCurrentMusic] = useState(null);
+  const [isGeneratingMusic, setIsGeneratingMusic] = useState(false);
+  const audioRef = useRef(null); // For audio playback
 
   useEffect(() => {
     // Set up game service callbacks
@@ -106,6 +109,39 @@ const App = () => {
         ...prev,
         `📥 OpenAI Response (${data.response.length} chars): "${data.response}"`
       ]);
+    });
+
+    gameService.onMusicGenerated((data) => {
+      console.log('🎵 Music generated event received in App:', data);
+      
+      if (data.generationStarted) {
+        // Show music generation starting
+        console.log('Music generation started for:', data.gameStatus?.room);
+        setIsGeneratingMusic(true);
+        setAiThoughts(prev => [
+          ...prev,
+          `🎵 Generating background music for ${data.gameStatus?.room || 'current area'}...`,
+          `🎼 Music Prompt: "${data.prompt}"`
+        ]);
+      } else if (data.musicData && data.musicData.url) {
+        // Music generation completed
+        console.log('Music generation completed. URL:', data.musicData.url);
+        setCurrentMusic(data.musicData.url);
+        setIsGeneratingMusic(false);
+        setAiThoughts(prev => [
+          ...prev, 
+          `✅ Background music generated for ${data.musicData.room}`,
+          `🎵 Music URL: ${data.musicData.url}`
+        ]);
+        
+        // Start playing the music if not muted
+        console.log('Checking music playback conditions:', { isMuted, hasAudioRef: !!audioRef.current });
+        if (!isMuted && audioRef.current) {
+          playMusic(data.musicData.url);
+        } else {
+          console.log('Not playing music:', isMuted ? 'muted' : 'no audio ref');
+        }
+      }
     });
 
     // Connect to game service
@@ -240,8 +276,20 @@ const App = () => {
   };
 
   const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-    setAiThoughts(prev => [...prev, `Audio ${!isMuted ? 'muted' : 'unmuted'}`]);
+    const newMuteState = !isMuted;
+    setIsMuted(newMuteState);
+    setAiThoughts(prev => [...prev, `Audio ${newMuteState ? 'muted' : 'unmuted'}`]);
+    
+    // Handle music playback based on mute state using volume control
+    if (audioRef.current) {
+      if (newMuteState) {
+        audioRef.current.volume = 0;
+        console.log('Music muted via volume control');
+      } else {
+        audioRef.current.volume = 0.3;
+        console.log('Music unmuted via volume control');
+      }
+    }
   };
 
   const handleGraphicsModeChange = (mode) => {
@@ -254,8 +302,57 @@ const App = () => {
     setAiThoughts(prev => [...prev, `AI autoplay speed set to ${speed} seconds`]);
   };
 
+  const playMusic = (musicUrl) => {
+    if (audioRef.current && musicUrl) {
+      try {
+        console.log('Attempting to play music:', musicUrl);
+        audioRef.current.src = musicUrl;
+        audioRef.current.loop = true;
+        audioRef.current.volume = isMuted ? 0 : 0.3; // Check mute state
+        
+        audioRef.current.addEventListener('loadstart', () => console.log('Music loading started'));
+        audioRef.current.addEventListener('canplay', () => console.log('Music can start playing'));
+        audioRef.current.addEventListener('playing', () => console.log('Music is playing'));
+        audioRef.current.addEventListener('error', (e) => console.error('Music error:', e));
+        
+        audioRef.current.play().then(() => {
+          console.log('Music playback started successfully, volume:', audioRef.current.volume);
+          setAiThoughts(prev => [...prev, `🎵 Now playing background music ${isMuted ? '(muted)' : ''}`]);
+        }).catch(error => {
+          console.error('Failed to play music:', error);
+          setAiThoughts(prev => [...prev, `❌ Failed to play music: ${error.message}`]);
+        });
+      } catch (error) {
+        console.error('Error setting up music:', error);
+      }
+    } else {
+      console.log('No audio ref or music URL:', { audioRef: !!audioRef.current, musicUrl });
+    }
+  };
+
+  const stopMusic = () => {
+    if (audioRef.current) {
+      console.log('Stopping music - current state:', {
+        src: audioRef.current.src,
+        paused: audioRef.current.paused,
+        currentTime: audioRef.current.currentTime,
+        volume: audioRef.current.volume
+      });
+      
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.volume = 0; // Also mute the volume
+      console.log('Music stopped');
+    } else {
+      console.log('No audio element to stop');
+    }
+  };
+
   return (
     <div className="app-container">
+      {/* Hidden audio element for background music */}
+      <audio ref={audioRef} preload="auto" />
+      
       <div className="status-bar">
         <span className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
           Backend: {isConnected ? 'Connected' : 'Disconnected'}

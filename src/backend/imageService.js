@@ -1,4 +1,6 @@
 const Replicate = require('replicate');
+const fs = require('fs');
+const path = require('path');
 
 class ImageGenerationService {
   constructor() {
@@ -145,12 +147,17 @@ class ImageGenerationService {
       
       console.log('Image generated successfully:', imageUrl);
       
-      return {
+      const imageData = {
         url: imageUrl,
         prompt: prompt,
         sceneDescription: sceneDescription,
         timestamp: new Date().toISOString()
       };
+      
+      // Log to file
+      this.logImageGeneration(imageData, gameStatus);
+      
+      return imageData;
 
     } catch (error) {
       console.error('Error generating image:', error);
@@ -172,6 +179,20 @@ class ImageGenerationService {
   async generateCommandImage(commandOutput, gameStatus = null) {
     console.log('Generating command response image...');
     return await this.generateImage(commandOutput, gameStatus);
+  }
+
+  /**
+   * Log image generation to file
+   */
+  logImageGeneration(imageData, gameStatus) {
+    try {
+      const logEntry = `${imageData.timestamp} | Room: ${gameStatus?.room || 'unknown'} | URL: ${imageData.url}\n`;
+      const logPath = path.join(process.cwd(), 'image-log.txt');
+      fs.appendFileSync(logPath, logEntry);
+      console.log('Image generation logged to image-log.txt');
+    } catch (error) {
+      console.error('Error logging image generation:', error);
+    }
   }
 
   /**

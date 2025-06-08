@@ -1,0 +1,313 @@
+const Replicate = require('replicate');
+const fs = require('fs');
+const path = require('path');
+
+class MusicGenerationService {
+  constructor() {
+    this.replicate = new Replicate({
+      auth: process.env.REPLICATE_API_KEY
+    });
+    this.isEnabled = !!process.env.REPLICATE_API_KEY;
+    this.musicCache = new Map(); // Cache music by room to avoid regeneration
+    
+    if (!this.isEnabled) {
+      console.warn('Replicate API token not found. Music generation disabled.');
+    }
+  }
+
+  /**
+   * Generate background music for a game scene
+   */
+  async generateMusic(gameOutput, gameStatus = null) {
+    if (!this.isEnabled) {
+      console.log('Music generation disabled - no API token');
+      return null;
+    }
+
+    try {
+      // Check cache first (by room)
+      const roomKey = gameStatus?.room || 'unknown_room';
+      if (this.musicCache.has(roomKey)) {
+        console.log('Using cached music for room:', roomKey);
+        return this.musicCache.get(roomKey);
+      }
+
+      const sceneDescription = this.extractSceneDescription(gameOutput);
+      const musicPrompt = this.createMusicPrompt(sceneDescription, gameStatus);
+      
+      console.log('Music Generation: Creating background music...');
+      console.log('Music prompt:', musicPrompt);
+      console.log('Replicate input parameters:', {
+        steps: 50,
+        prompt: musicPrompt,
+        model_version: "base",
+        guidance_scale: 7,
+        negative_prompt: "low quality, gentle, happy, upbeat",
+        save_spectrogram: true
+      });
+      console.log('Calling Replicate API for music generation...');
+      console.log('API Key present:', !!process.env.REPLICATE_API_KEY);
+      console.log('API Key length:', process.env.REPLICATE_API_KEY?.length || 0);
+
+      const startTime = Date.now();
+      console.log('Music generation started at:', new Date().toISOString());
+
+      const output = await this.replicate.run(
+        "zsxkib/flux-music:eebfed4a1749bb1172f005f71fac5a1e0377502ec149c9d02b56ac1de3aa9f07",
+        {
+          input: {
+            steps: 50,
+            prompt: musicPrompt,
+            model_version: "base",
+            guidance_scale: 7,
+            negative_prompt: "low quality, gentle, happy, upbeat",
+            save_spectrogram: true
+          }
+        }
+      );
+
+      const endTime = Date.now();
+      console.log('Music generation completed at:', new Date().toISOString());
+      console.log('Music generation took:', (endTime - startTime) / 1000, 'seconds');
+      console.log('Replicate API call completed. Raw output:', output);
+      console.log('Output type:', typeof output);
+      console.log('Output is array:', Array.isArray(output));
+      console.log('Output keys:', output ? Object.keys(output) : 'null');
+
+      console.log('Music generation output:', output);
+      
+      // Handle different output formats
+      let musicUrl = null;
+      
+      if (Array.isArray(output) && output[0]) {
+        musicUrl = output[0];
+      } else if (typeof output === 'string') {
+        musicUrl = output;
+      } else if (output && output.audio) {
+        musicUrl = output.audio;
+      } else if (output && output.wav) {
+        // Handle Flux-Music specific format with wav ReadableStream
+        console.log('Found wav output, type:', output.wav.constructor?.name);
+        console.log('Available methods on wav:', Object.getOwnPropertyNames(output.wav));
+        console.log('Checking for URL property:', output.wav.url);
+        
+        try {
+          // Check if it's a FileOutput with a URL method like images
+          if (output.wav.url && typeof output.wav.url === 'function') {
+            console.log('Using wav.url() method...');
+            const urlObject = await output.wav.url();
+            console.log('URL object result:', urlObject);
+            musicUrl = urlObject.href || urlObject.toString();
+          } else if (typeof output.wav.url === 'string') {
+            // Direct URL string property
+            console.log('Found direct URL string:', output.wav.url);
+            musicUrl = output.wav.url;
+          } else if (output.wav.toString && typeof output.wav.toString === 'function') {
+            // For now, let's see what toString gives us
+            console.log('Trying toString on wav object...');
+            const stringValue = output.wav.toString();
+            console.log('wav.toString():', stringValue);
+            
+            if (stringValue.startsWith('http')) {
+              musicUrl = stringValue;
+            } else {
+              console.log('wav object does not contain a direct URL');
+              console.log('Checking if wav has other properties:', Object.keys(output.wav));
+              
+              // Check for common URL properties
+              if (output.wav.href) {
+                musicUrl = output.wav.href;
+              } else if (output.wav.src) {
+                musicUrl = output.wav.src;
+              } else if (output.wav.path) {
+                musicUrl = output.wav.path;
+              } else {
+                musicUrl = null;
+              }
+            }
+          } else {
+            console.log('No usable URL extraction method found');
+            musicUrl = null;
+          }
+        } catch (error) {
+          console.error('Error processing wav output:', error);
+          musicUrl = null;
+        }
+      }
+
+      if (musicUrl) {
+        const musicData = {
+          url: musicUrl,
+          room: roomKey,
+          prompt: musicPrompt,
+          timestamp: new Date().toISOString()
+        };
+
+        // Cache the music for this room
+        this.musicCache.set(roomKey, musicData);
+        console.log('Music generated successfully for room:', roomKey);
+        
+        // Log to file
+        this.logMusicGeneration(musicData);
+        
+        return musicData;
+      } else {
+        console.error('No music URL found in output:', output);
+        return null;
+      }
+
+    } catch (error) {
+      console.error('Error generating music:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract meaningful scene description from game output
+   */
+  extractSceneDescription(gameOutput) {
+    // Remove command echoes and status lines
+    let description = gameOutput
+      .replace(/^>.*$/gm, '') // Remove command lines
+      .replace(/.*Score:\s*\d+\s*Moves:\s*\d+.*$/gm, '') // Remove status lines
+      .replace(/^\s*$/gm, '') // Remove empty lines
+      .trim();
+
+    // Take first meaningful paragraph as scene description
+    const paragraphs = description.split('\n\n').filter(p => p.trim().length > 20);
+    return paragraphs[0] || description;
+  }
+
+  /**
+   * Create a music generation prompt based on the game scene
+   */
+  createMusicPrompt(sceneDescription, gameStatus = null) {
+    const location = gameStatus?.room || "mysterious location";
+    
+    // Analyze scene for mood and atmosphere
+    const moodKeywords = this.analyzeMood(sceneDescription);
+    
+    // Base prompt for adventure game music
+    let prompt = `Generate atmospheric background music for a text adventure game. `;
+    
+    // Add location context
+    prompt += `The scene is set in: ${location}. `;
+    
+    // Add scene description
+    prompt += `Scene description: ${sceneDescription.substring(0, 200)}. `;
+    
+    // Add mood and style guidance
+    prompt += `Musical style: ${moodKeywords.style}. `;
+    prompt += `Mood: ${moodKeywords.mood}. `;
+    prompt += `Instruments: ${moodKeywords.instruments}. `;
+    
+    // Technical requirements
+    prompt += `Create ambient, looping background music suitable for a classic adventure game. `;
+    prompt += `The music should be atmospheric, mysterious, and enhance the sense of exploration.`;
+
+    return prompt;
+  }
+
+  /**
+   * Analyze scene description to determine musical mood and style
+   */
+  analyzeMood(sceneDescription) {
+    const text = sceneDescription.toLowerCase();
+    
+    // Define mood patterns
+    const moodPatterns = {
+      dark: ['dark', 'shadow', 'cave', 'underground', 'dungeon', 'basement', 'deep'],
+      mysterious: ['strange', 'mysterious', 'ancient', 'old', 'forgotten', 'hidden'],
+      dangerous: ['trap', 'danger', 'monster', 'threat', 'warning', 'beware'],
+      peaceful: ['garden', 'peaceful', 'quiet', 'serene', 'calm', 'safe'],
+      majestic: ['castle', 'throne', 'grand', 'magnificent', 'royal', 'palace'],
+      nature: ['forest', 'tree', 'river', 'water', 'mountain', 'outdoor'],
+      magical: ['magic', 'spell', 'wizard', 'enchant', 'glow', 'sparkle']
+    };
+
+    // Score each mood
+    const scores = {};
+    for (const [mood, keywords] of Object.entries(moodPatterns)) {
+      scores[mood] = keywords.reduce((score, keyword) => {
+        return score + (text.includes(keyword) ? 1 : 0);
+      }, 0);
+    }
+
+    // Find dominant mood
+    const dominantMood = Object.keys(scores).reduce((a, b) => 
+      scores[a] > scores[b] ? a : b
+    );
+
+    // Map moods to musical characteristics
+    const moodMap = {
+      dark: {
+        style: "dark ambient, atmospheric drone",
+        mood: "ominous, foreboding, tense",
+        instruments: "low strings, deep bass, subtle percussion, haunting pads"
+      },
+      mysterious: {
+        style: "ambient, ethereal soundscape",
+        mood: "mysterious, curious, intriguing",
+        instruments: "soft pads, gentle bells, whispered textures, ambient sounds"
+      },
+      dangerous: {
+        style: "tense cinematic, suspenseful",
+        mood: "threatening, urgent, dramatic",
+        instruments: "staccato strings, dramatic percussion, brass stabs"
+      },
+      peaceful: {
+        style: "serene ambient, gentle melodies",
+        mood: "calm, peaceful, tranquil",
+        instruments: "soft piano, gentle strings, nature sounds, warm pads"
+      },
+      majestic: {
+        style: "orchestral, grand cinematic",
+        mood: "noble, impressive, grand",
+        instruments: "full orchestra, brass fanfares, timpani, soaring strings"
+      },
+      nature: {
+        style: "organic ambient, natural soundscape",
+        mood: "fresh, alive, natural",
+        instruments: "acoustic guitar, flute, nature sounds, gentle percussion"
+      },
+      magical: {
+        style: "fantasy ambient, mystical",
+        mood: "enchanting, otherworldly, magical",
+        instruments: "chimes, harp, ethereal vocals, shimmering pads"
+      }
+    };
+
+    return moodMap[dominantMood] || moodMap.mysterious; // Default to mysterious
+  }
+
+  /**
+   * Clear music cache
+   */
+  clearCache() {
+    this.musicCache.clear();
+    console.log('Music cache cleared');
+  }
+
+  /**
+   * Log music generation to file
+   */
+  logMusicGeneration(musicData) {
+    try {
+      const logEntry = `${musicData.timestamp} | Room: ${musicData.room} | URL: ${musicData.url}\n`;
+      const logPath = path.join(process.cwd(), 'music-log.txt');
+      fs.appendFileSync(logPath, logEntry);
+      console.log('Music generation logged to music-log.txt');
+    } catch (error) {
+      console.error('Error logging music generation:', error);
+    }
+  }
+
+  /**
+   * Check if music generation is available
+   */
+  isAvailable() {
+    return this.isEnabled;
+  }
+}
+
+module.exports = MusicGenerationService;

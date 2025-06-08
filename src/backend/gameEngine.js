@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const ImageGenerationService = require('./imageService');
+const MusicGenerationService = require('./musicService');
 
 class ZorkGameEngine {
   constructor() {
@@ -20,8 +21,12 @@ class ZorkGameEngine {
     // Image generation service
     this.imageService = new ImageGenerationService();
     
-    // Callback for when images are generated
+    // Music generation service
+    this.musicService = new MusicGenerationService();
+    
+    // Callbacks for when media is generated
     this.onImageGenerated = null;
+    this.onMusicGenerated = null;
     
     // Track current room for image generation optimization
     this.currentRoom = null;
@@ -121,13 +126,21 @@ class ZorkGameEngine {
               timestamp: new Date().toISOString()
             });
             
-            // Always generate image on game start and set initial room
+            // Always generate media on game start and set initial room
             if (result.gameStatus?.room) {
               this.currentRoom = result.gameStatus.room;
             }
+            
+            // Generate image
             this.generateImageForOutput(result.output, result.gameStatus, { type: 'start', graphicsMode: graphicsMode })
               .catch(error => {
                 console.error('Error generating start image:', error);
+              });
+            
+            // Generate music
+            this.generateMusicForOutput(result.output, result.gameStatus, { type: 'start' })
+              .catch(error => {
+                console.error('Error generating start music:', error);
               });
             
             console.log('Game started successfully');
@@ -270,17 +283,25 @@ class ZorkGameEngine {
             timestamp: new Date().toISOString()
           });
 
-          // Only generate image if room has changed
+          // Only generate media if room has changed
           const newRoom = result.gameStatus?.room;
           if (newRoom && newRoom !== this.currentRoom) {
-            console.log(`Room changed from "${this.currentRoom}" to "${newRoom}" - generating new image in ${graphicsMode} style`);
+            console.log(`Room changed from "${this.currentRoom}" to "${newRoom}" - generating new media in ${graphicsMode} style`);
             this.currentRoom = newRoom;
+            
+            // Generate image
             this.generateImageForOutput(result.output, result.gameStatus, { type: 'command', command: command, graphicsMode: graphicsMode })
               .catch(error => {
                 console.error('Error generating command image:', error);
               });
+            
+            // Generate music
+            this.generateMusicForOutput(result.output, result.gameStatus, { type: 'command', command: command })
+              .catch(error => {
+                console.error('Error generating command music:', error);
+              });
           } else {
-            console.log(`Same room "${this.currentRoom}" - skipping image generation`);
+            console.log(`Same room "${this.currentRoom}" - skipping media generation`);
           }
 
           this.currentState = result.output;
@@ -514,10 +535,73 @@ class ZorkGameEngine {
   }
 
   /**
+   * Generate music for game output
+   */
+  async generateMusicForOutput(gameOutput, gameStatus = null, context = null) {
+    if (!this.musicService.isAvailable()) {
+      console.log('Music generation not available');
+      return null;
+    }
+
+    try {
+      console.log('=== MUSIC GENERATION ===');
+      console.log('Room:', gameStatus?.room || 'unknown');
+      console.log('Context type:', context?.type || 'unknown');
+      console.log('========================');
+      
+      // Extract scene description and create prompt immediately
+      const sceneDescription = this.musicService.extractSceneDescription(gameOutput);
+      const musicPrompt = this.musicService.createMusicPrompt(sceneDescription, gameStatus);
+      
+      // Notify about music generation starting with prompt
+      if (this.onMusicGenerated) {
+        this.onMusicGenerated({
+          type: context?.type || 'unknown',
+          command: context?.command,
+          generationStarted: true,
+          prompt: musicPrompt,
+          sceneDescription: sceneDescription,
+          output: gameOutput,
+          gameStatus: gameStatus
+        });
+      }
+
+      const musicData = await this.musicService.generateMusic(gameOutput, gameStatus);
+      if (musicData) {
+        console.log('Music generated for game output');
+        
+        // Notify about completed music
+        if (this.onMusicGenerated) {
+          this.onMusicGenerated({
+            type: context?.type || 'unknown',
+            command: context?.command,
+            musicData: musicData,
+            output: gameOutput,
+            gameStatus: gameStatus
+          });
+        }
+        
+        return musicData;
+      }
+    } catch (error) {
+      console.error('Error in generateMusicForOutput:', error);
+    }
+    
+    return null;
+  }
+
+  /**
    * Set callback for when images are generated
    */
   setImageGeneratedCallback(callback) {
     this.onImageGenerated = callback;
+  }
+
+  /**
+   * Set callback for when music is generated
+   */
+  setMusicGeneratedCallback(callback) {
+    this.onMusicGenerated = callback;
   }
 }
 

@@ -11,7 +11,8 @@ class GameService {
       onError: null,
       onImageGenerated: null,
       onAIPrompt: null,
-      onAIResponse: null
+      onAIResponse: null,
+      onMusicGenerated: null
     };
     this.serverUrl = 'http://localhost:3001';
   }
@@ -97,6 +98,13 @@ class GameService {
       console.log('AI response received:', data);
       if (this.callbacks.onAIResponse) {
         this.callbacks.onAIResponse(data);
+      }
+    });
+
+    this.socket.on('music-generated', (data) => {
+      console.log('Music generated received:', data);
+      if (this.callbacks.onMusicGenerated) {
+        this.callbacks.onMusicGenerated(data);
       }
     });
   }
@@ -285,6 +293,10 @@ class GameService {
 
   onAIResponse(callback) {
     this.callbacks.onAIResponse = callback;
+  }
+
+  onMusicGenerated(callback) {
+    this.callbacks.onMusicGenerated = callback;
   }
 
   getConnectionStatus() {
