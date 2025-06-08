@@ -53,15 +53,20 @@ class MusicGenerationService {
       console.log('Music generation started at:', new Date().toISOString());
 
       const output = await this.replicate.run(
-        "zsxkib/flux-music:eebfed4a1749bb1172f005f71fac5a1e0377502ec149c9d02b56ac1de3aa9f07",
+        "ardianfe/music-gen-fn-200e:96af46316252ddea4c6614e31861876183b59dce84bad765f38424e87919dd85",
         {
           input: {
-            steps: 50,
+            top_k: 250,
+            top_p: 0,
             prompt: musicPrompt,
-            model_version: "giant",
-            guidance_scale: 7,
-            negative_prompt: "low quality, gentle, happy, upbeat",
-            save_spectrogram: true
+            duration: 12,
+            temperature: 1,
+            continuation: false,
+            output_format: "wav",
+            continuation_start: 0,
+            multi_band_diffusion: false,
+            normalization_strategy: "loudness",
+            classifier_free_guidance: 3
           }
         }
       );
@@ -76,63 +81,35 @@ class MusicGenerationService {
 
       console.log('Music generation output:', output);
       
-      // Handle different output formats
+      // Handle music-gen-fn-200e output format
       let musicUrl = null;
       
-      if (Array.isArray(output) && output[0]) {
-        musicUrl = output[0];
-      } else if (typeof output === 'string') {
-        musicUrl = output;
-      } else if (output && output.audio) {
-        musicUrl = output.audio;
-      } else if (output && output.wav) {
-        // Handle Flux-Music specific format with wav ReadableStream
-        console.log('Found wav output, type:', output.wav.constructor?.name);
-        console.log('Available methods on wav:', Object.getOwnPropertyNames(output.wav));
-        console.log('Checking for URL property:', output.wav.url);
-        
-        try {
-          // Check if it's a FileOutput with a URL method like images
-          if (output.wav.url && typeof output.wav.url === 'function') {
-            console.log('Using wav.url() method...');
-            const urlObject = await output.wav.url();
-            console.log('URL object result:', urlObject);
-            musicUrl = urlObject.href || urlObject.toString();
-          } else if (typeof output.wav.url === 'string') {
-            // Direct URL string property
-            console.log('Found direct URL string:', output.wav.url);
-            musicUrl = output.wav.url;
-          } else if (output.wav.toString && typeof output.wav.toString === 'function') {
-            // For now, let's see what toString gives us
-            console.log('Trying toString on wav object...');
-            const stringValue = output.wav.toString();
-            console.log('wav.toString():', stringValue);
-            
-            if (stringValue.startsWith('http')) {
-              musicUrl = stringValue;
-            } else {
-              console.log('wav object does not contain a direct URL');
-              console.log('Checking if wav has other properties:', Object.keys(output.wav));
-              
-              // Check for common URL properties
-              if (output.wav.href) {
-                musicUrl = output.wav.href;
-              } else if (output.wav.src) {
-                musicUrl = output.wav.src;
-              } else if (output.wav.path) {
-                musicUrl = output.wav.path;
-              } else {
-                musicUrl = null;
-              }
-            }
-          } else {
-            console.log('No usable URL extraction method found');
-            musicUrl = null;
+      console.log('Music output type:', typeof output);
+      console.log('Music output constructor:', output?.constructor?.name);
+      console.log('Music output properties:', Object.getOwnPropertyNames(output || {}));
+      
+      try {
+        if (output && output.url && typeof output.url === 'function') {
+          // FileOutput object with url() method
+          console.log('Using output.url() method...');
+          musicUrl = await output.url();
+          console.log('Extracted music URL:', musicUrl);
+        } else if (typeof output === 'string' && output.startsWith('http')) {
+          // Direct URL string
+          musicUrl = output;
+        } else if (output && typeof output.toString === 'function') {
+          // Try toString method
+          const stringValue = output.toString();
+          if (stringValue.startsWith('http')) {
+            musicUrl = stringValue;
           }
-        } catch (error) {
-          console.error('Error processing wav output:', error);
+        } else {
+          console.log('Unknown output format for music-gen-fn-200e');
           musicUrl = null;
         }
+      } catch (error) {
+        console.error('Error extracting music URL:', error);
+        musicUrl = null;
       }
 
       if (musicUrl) {
