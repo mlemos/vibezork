@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import VibeZorkPanel from './VibeZorkPanel';
 import AIPanel from './AIPanel';
 import ControlsPanel from './ControlsPanel';
@@ -13,7 +13,9 @@ const App = () => {
   const [isAIPlaying, setIsAIPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [graphicsMode, setGraphicsMode] = useState('fantasy');
+  const [autoplaySpeed, setAutoplaySpeed] = useState(2); // seconds between moves
   const [isAIThinking, setIsAIThinking] = useState(false);
+  const autoplayRef = useRef(false); // Use ref to track autoplay state for closures
   const [gameStatus, setGameStatus] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -171,6 +173,33 @@ const App = () => {
       console.error('Error requesting AI move:', error);
       setGameOutput(prev => [...prev, `❌ Error requesting AI move: ${error.message}`]);
       setIsGeneratingImage(false);
+      throw error; // Re-throw for autoplay error handling
+    }
+  };
+
+  const executeNextAIMove = async () => {
+    console.log('executeNextAIMove called, autoplayRef.current:', autoplayRef.current);
+    if (!autoplayRef.current) {
+      console.log('Autoplay stopped - autoplayRef.current is false');
+      return; // Stop if autoplay was turned off
+    }
+    
+    try {
+      console.log('Calling handleAIMove...');
+      await handleAIMove(); // Wait for AI move to complete
+      console.log('handleAIMove completed, scheduling next move in', autoplaySpeed, 'seconds');
+      
+      // Schedule next move only after current one finishes
+      setTimeout(() => {
+        console.log('Timeout fired, calling executeNextAIMove again, autoplayRef.current:', autoplayRef.current);
+        executeNextAIMove(); // Recursive call
+      }, autoplaySpeed * 1000);
+      
+    } catch (error) {
+      console.error('Autoplay stopped due to error:', error);
+      autoplayRef.current = false;
+      setIsAIPlaying(false); // Stop autoplay on error
+      setAiThoughts(prev => [...prev, `⏸️ Autoplay paused: ${error.message}`]);
     }
   };
 
@@ -193,8 +222,21 @@ const App = () => {
   };
 
   const handleAIToggle = () => {
-    setIsAIPlaying(!isAIPlaying);
-    setAiThoughts(prev => [...prev, `AI player ${!isAIPlaying ? 'activated' : 'deactivated'}`]);
+    const newState = !isAIPlaying;
+    console.log('AI Toggle clicked, new state:', newState);
+    setIsAIPlaying(newState);
+    autoplayRef.current = newState; // Update ref immediately
+    
+    if (newState) {
+      // Start autoplay
+      console.log('Starting autoplay with speed:', autoplaySpeed);
+      setAiThoughts(prev => [...prev, `▶️ AI autoplay started (${autoplaySpeed}s delay)`]);
+      executeNextAIMove(); // Start first move immediately
+    } else {
+      // Stop autoplay
+      console.log('Stopping autoplay');
+      setAiThoughts(prev => [...prev, '⏸️ AI autoplay paused']);
+    }
   };
 
   const handleMuteToggle = () => {
@@ -205,6 +247,11 @@ const App = () => {
   const handleGraphicsModeChange = (mode) => {
     setGraphicsMode(mode);
     setAiThoughts(prev => [...prev, `Graphics mode changed to ${mode}`]);
+  };
+
+  const handleAutoplaySpeedChange = (speed) => {
+    setAutoplaySpeed(speed);
+    setAiThoughts(prev => [...prev, `AI autoplay speed set to ${speed} seconds`]);
   };
 
   return (
@@ -249,9 +296,11 @@ const App = () => {
             onMuteToggle={handleMuteToggle}
             onGraphicsModeChange={handleGraphicsModeChange}
             onAIMove={handleAIMove}
+            onAutoplaySpeedChange={handleAutoplaySpeedChange}
             isAIPlaying={isAIPlaying}
             isMuted={isMuted}
             graphicsMode={graphicsMode}
+            autoplaySpeed={autoplaySpeed}
           />
         </div>
       </div>

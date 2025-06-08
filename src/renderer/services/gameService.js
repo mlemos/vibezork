@@ -224,8 +224,38 @@ class GameService {
     }
 
     console.log('Requesting AI move via WebSocket');
-    this.socket.emit('ai-move');
-    return Promise.resolve(); // WebSocket is fire-and-forget, response comes via event
+    
+    return new Promise((resolve, reject) => {
+      // Set up one-time listeners for this AI move
+      const onGameOutput = (data) => {
+        if (data.fromAI) {
+          // This is the response to our AI move request
+          this.socket.off('game-output', onGameOutput);
+          this.socket.off('error', onError);
+          resolve(data);
+        }
+      };
+      
+      const onError = (error) => {
+        this.socket.off('game-output', onGameOutput);
+        this.socket.off('error', onError);
+        reject(new Error(error.message));
+      };
+      
+      // Listen for the response
+      this.socket.on('game-output', onGameOutput);
+      this.socket.on('error', onError);
+      
+      // Send the request
+      this.socket.emit('ai-move');
+      
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        this.socket.off('game-output', onGameOutput);
+        this.socket.off('error', onError);
+        reject(new Error('AI move timeout'));
+      }, 30000);
+    });
   }
 
   // Event listeners

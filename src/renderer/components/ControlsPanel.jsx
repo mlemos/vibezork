@@ -6,9 +6,11 @@ const ControlsPanel = ({
   onMuteToggle, 
   onGraphicsModeChange,
   onAIMove,
+  onAutoplaySpeedChange,
   isAIPlaying,
   isMuted,
-  graphicsMode 
+  graphicsMode,
+  autoplaySpeed 
 }) => {
   return (
     <div className="controls-panel">
@@ -46,6 +48,22 @@ const ControlsPanel = ({
         >
           {isMuted ? '🔇 Unmute' : '🔊 Mute'}
         </button>
+      </div>
+      
+      <div className="autoplay-controls">
+        <label htmlFor="autoplay-speed" className="autoplay-label">
+          AI Speed: {autoplaySpeed}s
+        </label>
+        <input
+          id="autoplay-speed"
+          type="range"
+          min="1"
+          max="10"
+          value={autoplaySpeed}
+          onChange={(e) => onAutoplaySpeedChange(Number(e.target.value))}
+          className="autoplay-slider"
+          disabled={isAIPlaying}
+        />
       </div>
       
       <div className="graphics-controls">
