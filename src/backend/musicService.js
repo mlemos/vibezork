@@ -58,7 +58,7 @@ class MusicGenerationService {
           input: {
             steps: 50,
             prompt: musicPrompt,
-            model_version: "base",
+            model_version: "giant",
             guidance_scale: 7,
             negative_prompt: "low quality, gentle, happy, upbeat",
             save_spectrogram: true
@@ -182,28 +182,20 @@ class MusicGenerationService {
    * Create a music generation prompt based on the game scene
    */
   createMusicPrompt(sceneDescription, gameStatus = null) {
-    const location = gameStatus?.room || "mysterious location";
-    
     // Analyze scene for mood and atmosphere
     const moodKeywords = this.analyzeMood(sceneDescription);
     
-    // Base prompt for adventure game music
-    let prompt = `Generate atmospheric background music for a text adventure game. `;
+    // Clean scene description (remove extra text)
+    const cleanScene = sceneDescription.substring(0, 300).trim();
     
-    // Add location context
-    prompt += `The scene is set in: ${location}. `;
+    // Separate scene description from model instructions
+    const sceneSection = `SCENE:\n${cleanScene}`;
     
-    // Add scene description
-    prompt += `Scene description: ${sceneDescription.substring(0, 200)}. `;
+    // Model instructions with cleaner format
+    const instructionsSection = `INSTRUCTIONS:\nGenerate looping background music for a fantasy text adventure game.\nStyle: ${moodKeywords.style}.\nMood: ${moodKeywords.mood}.\nInstruments: ${moodKeywords.instruments}.\nPurpose: Enhance the immersive atmosphere of exploration without distracting from gameplay text.`;
     
-    // Add mood and style guidance
-    prompt += `Musical style: ${moodKeywords.style}. `;
-    prompt += `Mood: ${moodKeywords.mood}. `;
-    prompt += `Instruments: ${moodKeywords.instruments}. `;
-    
-    // Technical requirements
-    prompt += `Create ambient, looping background music suitable for a classic adventure game. `;
-    prompt += `The music should be atmospheric, mysterious, and enhance the sense of exploration.`;
+    // Combine with clear separation
+    const prompt = `${sceneSection}\n\n${instructionsSection}`;
 
     return prompt;
   }
