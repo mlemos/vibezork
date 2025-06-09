@@ -20,7 +20,7 @@ const ControlsPanel = ({
           className="control-button reset-button"
           title="Reset the game to start over"
         >
-          🔄 Reset Game
+          🔄 (Re)Start Game
         </button>
         
         <div className="ai-controls-row">
@@ -29,7 +29,7 @@ const ControlsPanel = ({
             className={`control-button ai-button ${isAIPlaying ? 'active' : ''}`}
             title={isAIPlaying ? 'Pause AI player' : 'Let AI play the game'}
           >
-            {isAIPlaying ? '⏸️ Pause AI' : '▶️ Play AI'}
+            {isAIPlaying ? '⏸️ Pause AI' : '▶️ Start AI'}
           </button>
           
           <button 

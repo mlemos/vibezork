@@ -31,6 +31,9 @@ This instruction are for **macOS**, but it should be easy to adapt to other syst
 
 ### Installing dfrotz
 
+> [!CAUTION]
+> The app has no usage limits. Be aware that AI API requests will consume your quotas and credits, especially when using the AI auto-play feature.
+
 **macOS (using Homebrew):**
 ```bash
 brew install frotz
@@ -105,41 +108,35 @@ npm run electron:dev
 ## How to Use VibeZork
 
 ### Basic Gameplay
-1. **Type commands** in the input field at the bottom of the main panel.
-2. **Press Enter** or click **Send** to execute commands.
-3. **Common commands:**
+1. Click on the **Re(Start) Game** button to start or restart the game.
+2. **Type commands** in the input field at the bottom of the main panel.
+3. **Press Enter** or click **Send** to execute commands.
+4. **Common commands:**
    - `look` - Examine your surroundings
    - `inventory` - Check what you're carrying
    - `north`, `south`, `east`, `west` - Move in directions
    - `take lamp` - Pick up objects
    - `open mailbox` - Interact with objects
 
-### AI Features
+### AI Autoplay
 
-**Graphics Generation:**
-- Images generate automatically when you enter new locations.
-- Choose graphics style from dropdown: Pixel Art, Realistic, etc.
-- Images appear in the graphics section at the top.
+> [!CAUTION]
+> The app has no usage limits. Be aware that AI API requests will consume your quotas and credits, especially when using the AI auto-play feature.
 
-**Background Music:**
-- Music generates automatically for each new room.
-- Toggle with the **Mute/Unmute** button.
-- Music crossfades smoothly between locations.
-- Sometimes it take a few seconds for the music to start (generation is slow).
-
-**AI Autoplay:**
-1. Click **AI Autoplay** to let AI play automatically.
+1. Click **Start AI** to let AI play automatically.
 2. Adjust autoplay speed with the slider.
 3. The AI will play continuously at the speed you set.
 4. Input is disabled during autoplay mode.
+5. Click **Pause AI** to pause the AI.
 
-**AI Single Move:**
-1. Click **AI Single Move** to let AI play one move.
+### AI Single Move
+1. Click **AI Move** to let AI play one move.
 
 ### Controls Panel
-- **Reset Game** - Restart Zork from the beginning. 
-- **AI Autoplay** - Toggle automatic AI gameplay.
-- **AI Single Move** - Request one AI move.
+- **Re(Start) Game** - Start or restart Zork from the beginning. 
+- **Start AI** - Toggle automatic AI gameplay.
+- **Pause AI** - Pause the AI.
+- **AI Move** - Request one AI move.
 - **Mute/Unmute** - Control background music.
 - **Graphics Mode** - Select visual style for image generation.
 - **Autoplay Speed** - Adjust timing between AI moves.
@@ -181,12 +178,6 @@ Monitor real-time status:
 - Check that dfrotz process is running: `ps aux | grep dfrotz`.
 - Restart the application.
 
-### Debug Mode
-Enable detailed logging by setting:
-```bash
-DEBUG=true npm run dev
-```
-
 ### Log Files
 Check generated logs for debugging:
 - `image-log.txt` - Image generation history.
@@ -212,16 +203,9 @@ src/
     └── styles/            # CSS styling
 ```
 
-## Contributing
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Make your changes.
-4. Test thoroughly.
-5. Submit a pull request.
-6. Have fun!
-
 ## License
+
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
 
 This project is for educational and entertainment purposes. **Zork** is a trademark of [Activision](https://activision.com/).
 
