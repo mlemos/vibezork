@@ -1,7 +1,7 @@
 # VibeZork
 A Classic Adventure Reimagined with AI
 
-![VibeZork](vibezork.png)
+![VibeZork](/docs/vibezork.png)
 
 **VibeZork** offers a fun new way to play the beloved classic [Zork](https://en.wikipedia.org/wiki/Zork). I've taken the popular 80s text-based adventure and transformed the experience with the power of AI-generated graphics and music. This project lets you play the old classic via [Frotz](https://davidgriffith.gitlab.io/frotz/), now augmented with immersive visuals and dynamic audio that truly bring its world to life.
 
