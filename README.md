@@ -211,13 +211,14 @@ This project is for educational and entertainment purposes. **Zork** is a tradem
 
 ## Credits
 
-- **Original Zork** - Infocom (1980) [original game](https://datadrivengamer.blogspot.com/2019/04/game-55-zork-i.html).
-- **Frotz** - Z-machine interpreter [David Kinder](https://www.davidkinder.co.uk/frotz.html).
+- **Original Zork** - [Infocom](https://en.wikipedia.org/wiki/Infocom) (1980) and the authors of the original game (Tim Anderson, Marc Blank, Bruce Daniels, and Dave Lebling).
+- **Game File** - Dowload from [Data Driven Gamer](https://datadrivengamer.blogspot.com/2019/04/game-55-zork-i.html).
+- **Frotz** - Z-machine interpreter by [David Kinder](https://www.davidkinder.co.uk/frotz.html).
 - **Image Model** - [Flux-Schnell](https://replicate.com/black-forest-labs/flux-schnell) via [Replicate](https://replicate.com).
 - **Music Model** - [MusicGen](https://replicate.com/ardianfe/music-gen-fn-200e) via [Replicate](https://replicate.com).
-- **Playing Model** - OpenAI [GPT-4.1](https://platform.openai.com/docs/models/gpt-4.1) via [OpenAI](https://openai.com/).
-- **Framework** - [Electron](https://www.electronjs.org/), [React](https://reactjs.org/), [Node.js](https://nodejs.org/).
-- **Claude Code** - [Claude](https://www.anthropic.com/claude) via [Anthropic](https://www.anthropic.com/).
+- **Playing Model** - [GPT-4.1](https://platform.openai.com/docs/models/gpt-4.1) by [OpenAI](https://openai.com/).
+- **Framework** - [Electron](https://www.electronjs.org/), [React](https://reactjs.org/) and [Node.js](https://nodejs.org/).
+- **Coding Assistant** - [Claude Code](https://www.anthropic.com/claude) by [Anthropic](https://www.anthropic.com/).
 
 ## Special Thanks
 

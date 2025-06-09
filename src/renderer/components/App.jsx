@@ -468,21 +468,26 @@ const App = () => {
       <audio ref={audioRef2} preload="auto" />
       
       <div className="status-bar">
-        <span className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
-          Backend: {isConnected ? 'Connected' : 'Disconnected'}
+        <span className="status brand-title">
+          <a href="https://github.com/mlemos/vibezork" target="_blank" rel="noopener noreferrer">VibeZork</a> <span className="byline">(by <a href="https://manoellemos.com" target="_blank" rel="noopener noreferrer">@mlemos</a>)</span>
         </span>
-        <span className={`status ${isAIThinking ? 'thinking' : 'ai-ready'}`}>
-          AI: {isAIThinking ? 'Thinking' : 'Ready'}
-        </span>
-        <span className={`status ${isAIPlaying ? 'ai-active' : 'ai-idle'}`}>
-          Auto: {isAIPlaying ? 'Playing' : 'Manual'}
-        </span>
-        <span className={`status ${!isMuted ? 'audio-on' : 'audio-off'}`}>
-          Audio: {!isMuted ? 'On' : 'Off'}
-        </span>
-        <span className="status graphics-mode">
-          GFX: {graphicsMode.toUpperCase()}
-        </span>
+        <div className="status-indicators">
+          <span className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
+            Backend: {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+          <span className={`status ${isAIThinking ? 'thinking' : 'ai-ready'}`}>
+            AI: {isAIThinking ? 'Thinking' : 'Ready'}
+          </span>
+          <span className={`status ${isAIPlaying ? 'ai-active' : 'ai-idle'}`}>
+            Auto: {isAIPlaying ? 'Playing' : 'Manual'}
+          </span>
+          <span className={`status ${!isMuted ? 'audio-on' : 'audio-off'}`}>
+            Audio: {!isMuted ? 'On' : 'Off'}
+          </span>
+          <span className="status graphics-mode">
+            GFX: {graphicsMode.toUpperCase()}
+          </span>
+        </div>
       </div>
       <div className="app-grid">
         <VibeZorkPanel 
